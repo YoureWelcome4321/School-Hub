@@ -2,14 +2,14 @@ import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { StyleSheet, Text, Image, SafeAreaView, TextInput, TouchableOpacity } from 'react-native';
 
-export default function LogIn() {
+export default function LogIn({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
       <SafeAreaView style={styles.content}>
         <Image 
           style={styles.logo}
-          source={require('./assets/PushkinLogo.png')}
+          source={require('../assets/PushkinLogo.png')}
         />
 
         <Text style={styles.schoolTitle}>Лицей №9 имени А.С.Пушкина</Text>
@@ -29,7 +29,7 @@ export default function LogIn() {
             placeholderTextColor="#a2acb4"
           />
 
-          <TouchableOpacity style={styles.signInButton}>
+          <TouchableOpacity onPress={() => navigation.navigate('Main')} style={styles.signInButton}>
             <Text style={styles.buttonText}>Войти</Text>
           </TouchableOpacity>
 
@@ -41,7 +41,7 @@ export default function LogIn() {
 
           <TouchableOpacity style={styles.telegramButton}>
             <Image style={styles.telelogo}
-          source={require('./assets/TelegramLogo.png')}/>
+          source={require('../assets/TelegramLogo.png')}/>
             <Text style={styles.buttonText}>Telegram</Text>
           </TouchableOpacity>
         </SafeAreaView>
