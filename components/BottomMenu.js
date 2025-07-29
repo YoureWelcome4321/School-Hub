@@ -1,7 +1,7 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from 'react-native-vector-icons';
-import { StyleSheet } from "react-native";
+import { TouchableOpacity,StyleSheet } from "react-native";
 import Settings from "./Settings";
 import Shedule from "./Shedule";
 import Clubs from "./Clubs";
@@ -14,15 +14,28 @@ export default function BottomMenu() {
     
       <Tab.Navigator
         screenOptions={{
-          headerShown: false, // скрыть заголовок
+          headerShown: false,
+          tabBarStyle: {
+            height: 115,
+            paddingBottom:20 ,
+            paddingTop:10,
+            backgroundColor: "#2c2c2c",
+            borderTopWidth: 0,
+            
+
+    },
+    tabBarButton: (props) => (
+      <TouchableOpacity {...props} activeOpacity={1} />
+    ),
         }}
         tabBarPosition="bottom"
       >
         <Tab.Screen
-          name="Shedule"
+          name="Расписание"
           component={Shedule}
           options={{
-            tabBarLabel: "Shedule",
+            tabBarLabel: "Расписание",
+            tabBarLabelStyle: { fontSize: 12},
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons name="calendar" color={color} size={24} />
             ),
@@ -32,7 +45,8 @@ export default function BottomMenu() {
           name="Clubs"
           component={Clubs}
           options={{
-            tabBarLabel: "Clubs",
+            tabBarLabel: "Клубы",
+            tabBarLabelStyle: { fontSize: 12},
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons name="account-group" color={color} size={24} />
             ),
@@ -42,19 +56,21 @@ export default function BottomMenu() {
           name="News"
           component={News}
           options={{
-            tabBarLabel: "News",
+            tabBarLabel: "Новости",
+            tabBarLabelStyle: { fontSize: 12},
             tabBarIcon: ({ color }) => (
               <MaterialCommunityIcons name="newspaper" color={color} size={24} />
             ),
           }}
         />
         <Tab.Screen
-          name="Settings"
+          name="Профиль"
           component={Settings}
           options={{
-            tabBarLabel: "Settings",
+            tabBarLabel: "Профиль",
+            tabBarLabelStyle: { fontSize: 12},
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="cog" color={color} size={24} />
+              <MaterialCommunityIcons name="account" color={color} size={24} />
             ),
           }}
         />

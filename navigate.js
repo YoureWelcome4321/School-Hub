@@ -3,6 +3,8 @@ import LogIn from "./components/LogIn";
 import Main from "./components/Main";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
+import Toast from 'react-native-toast-message';
+
 
 const Stack = createStackNavigator();
 
@@ -20,5 +22,6 @@ export default function Navigate() {
                 options={{ headerShown: false }}
             />
         </Stack.Navigator>
+        <Toast />
     </NavigationContainer>
 }

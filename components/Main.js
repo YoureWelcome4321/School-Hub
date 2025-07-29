@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Button, StyleSheet } from "react-native";
-import BottomMenu from "./BottomMenu"; // или путь к BottomMenu
+import BottomMenu from "./BottomMenu"; 
 
 export default function Main({ navigation }) {
   return (
@@ -14,6 +14,7 @@ export default function Main({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#000",
   },
   header: {
     textAlign: "center",
