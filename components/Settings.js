@@ -10,7 +10,7 @@ import {
   SafeAreaView,
   TextInput,
   TouchableOpacity,
-  ScrollView, // Добавлен ScrollView
+  ScrollView, 
 } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -237,8 +237,8 @@ export default function Settings() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false} // 🔹 Скроллбар скрыт
-        bounces={false} // Опционально: отключает эффект "резиновой тяги"
+        showsVerticalScrollIndicator={false} 
+        bounces={false} 
       >
         <View style={styles.headeronmenu}>
           <Text style={styles.header}>Профиль</Text>
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40, // Добавляет отступ внизу, чтобы контент не прилипал к нижней части
+    paddingBottom: 40, 
   },
   profilecontainer: {
     width: "100%",

@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   TextInput,
   TouchableOpacity,
+ 
 } from "react-native";
 import { useState } from "react";
 import axios from "axios";
@@ -76,6 +77,7 @@ export default function LogIn() {
     <View style={styles.container}>
       <StatusBar style="auto" />
       <SafeAreaView style={styles.content}>
+      
         <Image
           style={styles.logo}
           source={require("../assets/PushkinLogo.png")}
@@ -125,7 +127,9 @@ export default function LogIn() {
             <Text style={styles.buttonText}>Telegram</Text>
           </TouchableOpacity>
         </SafeAreaView>
+       
       </SafeAreaView>
+      
     </View>
   );
 }
