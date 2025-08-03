@@ -7,24 +7,24 @@ import {
   StyleSheet,
   Text,
   Image,
-  SafeAreaView,
   TextInput,
   TouchableOpacity,
-  ScrollView, 
+  ScrollView,
 } from "react-native";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-import Toast from 'react-native-toast-message';
+import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
+import Toast from "react-native-toast-message";
 
 export default function Settings() {
   const [isEditing, setIsEditing] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
   // Состояние для привязки почты
   const [isAddingEmail, setIsAddingEmail] = useState(false);
-  const [emailInput, setEmailInput] = useState('');
+  const [emailInput, setEmailInput] = useState("");
 
   const [profileData, setProfileData] = useState({
     email: "",
@@ -39,9 +39,9 @@ export default function Settings() {
   const navigation = useNavigation();
 
   async function Exit() {
-    await AsyncStorage.removeItem('token');
-    navigation.navigate('LogIn');
-    console.log('Выход из аккаунта');
+    await AsyncStorage.removeItem("token");
+    navigation.navigate("LogIn");
+    console.log("Выход из аккаунта");
   }
 
   const [originalData, setOriginalData] = useState({});
@@ -55,11 +55,14 @@ export default function Settings() {
           return;
         }
 
-        const response = await axios.get("https://api.school-hub.ru/settings/info", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await axios.get(
+          "https://api.school-hub.ru/settings/info",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         const data = response.data;
         setProfileData(data);
@@ -68,7 +71,10 @@ export default function Settings() {
           setEmailInput(data.email);
         }
       } catch (error) {
-        console.log("Ошибка при загрузке профиля:", error.response?.data || error.message);
+        console.log(
+          "Ошибка при загрузке профиля:",
+          error.response?.data || error.message
+        );
         showToast("error", "Ошибка", "Не удалось загрузить данные профиля.");
       }
     }
@@ -129,8 +135,12 @@ export default function Settings() {
           showToast("info", "Без изменений", "Изменений не обнаружено.");
         }
       } catch (error) {
-        console.log("Ошибка при сохранении:", error.response?.data || error.message);
-        const message = error.response?.data?.message || "Не удалось сохранить изменения.";
+        console.log(
+          "Ошибка при сохранении:",
+          error.response?.data || error.message
+        );
+        const message =
+          error.response?.data?.message || "Не удалось сохранить изменения.";
         showToast("error", "Ошибка", message);
       }
     }
@@ -148,7 +158,11 @@ export default function Settings() {
     }
 
     if (newPassword.length < 6) {
-      showToast("error", "Ошибка", "Новый пароль должен быть не менее 6 символов");
+      showToast(
+        "error",
+        "Ошибка",
+        "Новый пароль должен быть не менее 6 символов"
+      );
       return;
     }
 
@@ -160,7 +174,7 @@ export default function Settings() {
       }
 
       await axios.post(
-        'https://api.school-hub.ru/settings/password/change',
+        "https://api.school-hub.ru/settings/password/change",
         {
           current_password: currentPassword,
           new_password: newPassword,
@@ -168,14 +182,14 @@ export default function Settings() {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }
       );
 
       showToast("success", "Успех", "Пароль успешно изменён");
-      setCurrentPassword('');
-      setNewPassword('');
+      setCurrentPassword("");
+      setNewPassword("");
       setShowChangePassword(false);
     } catch (error) {
       const message =
@@ -186,7 +200,7 @@ export default function Settings() {
   };
 
   const handleAddEmail = async () => {
-    if (!emailInput || !emailInput.includes('@')) {
+    if (!emailInput || !emailInput.includes("@")) {
       showToast("error", "Ошибка", "Введите корректный email");
       return;
     }
@@ -199,22 +213,27 @@ export default function Settings() {
       }
 
       await axios.post(
-        'https://api.school-hub.ru/settings/email/set',
+        "https://api.school-hub.ru/settings/email/set",
         { email: emailInput },
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         }
       );
 
-      setProfileData(prev => ({ ...prev, email: emailInput }));
-      setOriginalData(prev => ({ ...prev, email: emailInput }));
+      setProfileData((prev) => ({ ...prev, email: emailInput }));
+      setOriginalData((prev) => ({ ...prev, email: emailInput }));
       setIsAddingEmail(false);
-      showToast("success", "Почта добавлена", "На вашу почту отправлено письмо подтверждения");
+      showToast(
+        "success",
+        "Почта добавлена",
+        "На вашу почту отправлено письмо подтверждения"
+      );
     } catch (error) {
-      const message = error.response?.data?.message || "Не удалось добавить почту.";
+      const message =
+        error.response?.data?.message || "Не удалось добавить почту.";
       showToast("error", "Ошибка", message);
     }
   };
@@ -226,7 +245,7 @@ export default function Settings() {
       text2: message,
       visibilityTime: 3000,
       autoHide: true,
-      position: 'top',
+      position: "top",
       topOffset: 50,
     });
   };
@@ -237,14 +256,13 @@ export default function Settings() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false} 
-        bounces={false} 
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        <View style={styles.headeronmenu}>
-          <Text style={styles.header}>Профиль</Text>
-        </View>
-
-        <View style={styles.profilecontainer}>
+        <SafeAreaView style={styles.profilecontainer}>
+          <View style={styles.headeronmenu}>
+            <Text style={styles.header}>Профиль</Text>
+          </View>
           <SafeAreaView style={styles.osnov}>
             <Image
               style={styles.profileIcon}
@@ -254,14 +272,15 @@ export default function Settings() {
               {profileData.name} {profileData.surname?.[0]}.
             </Text>
             <Text style={styles.class}>
-              {profileData.class_number}{profileData.class_letter} класс
+              {profileData.class_number}
+              {profileData.class_letter} класс
             </Text>
           </SafeAreaView>
 
           <TouchableOpacity onPress={toggleEdit} style={styles.forgotPassword}>
             <MaterialCommunityIcons name="draw" color="#007AFF" size={24} />
             <Text style={styles.forgotPasswordText}>
-              {isEditing ? 'Сохранить изменения' : 'Редактировать'}
+              {isEditing ? "Сохранить изменения" : "Редактировать"}
             </Text>
           </TouchableOpacity>
 
@@ -286,30 +305,31 @@ export default function Settings() {
               keyboardType="email-address"
               editable={isEditing}
             />
+          ) : !isAddingEmail ? (
+            <TouchableOpacity
+              style={styles.addEmailButton}
+              onPress={() => setIsAddingEmail(true)}
+            >
+              <Text style={styles.addEmailButtonText}>Привязать почту</Text>
+            </TouchableOpacity>
           ) : (
-            !isAddingEmail ? (
+            <View style={styles.emailContainer}>
+              <TextInput
+                style={styles.input}
+                value={emailInput}
+                onChangeText={setEmailInput}
+                placeholder="Введите email"
+                placeholderTextColor="#888"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
               <TouchableOpacity
-                style={styles.addEmailButton}
-                onPress={() => setIsAddingEmail(true)}
+                style={styles.confirmButton}
+                onPress={handleAddEmail}
               >
-                <Text style={styles.addEmailButtonText}>Привязать почту</Text>
+                <Text style={styles.confirmButtonText}>Подтвердить</Text>
               </TouchableOpacity>
-            ) : (
-              <View style={styles.emailContainer}>
-                <TextInput
-                  style={styles.input}
-                  value={emailInput}
-                  onChangeText={setEmailInput}
-                  placeholder="Введите email"
-                  placeholderTextColor="#888"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity style={styles.confirmButton} onPress={handleAddEmail}>
-                  <Text style={styles.confirmButtonText}>Подтвердить</Text>
-                </TouchableOpacity>
-              </View>
-            )
+            </View>
           )}
 
           {/* Поле "Пароль" */}
@@ -337,13 +357,13 @@ export default function Settings() {
                 />
                 <View style={styles.passwordButtons}>
                   <TouchableOpacity
-                    style={[styles.smallButton, { backgroundColor: '#fa5757' }]}
+                    style={[styles.smallButton, { backgroundColor: "#fa5757" }]}
                     onPress={() => setShowChangePassword(false)}
                   >
                     <Text style={styles.smallButtonText}>Отмена</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.smallButton, { backgroundColor: '#007AFF' }]}
+                    style={[styles.smallButton, { backgroundColor: "#007AFF" }]}
                     onPress={handleChangePassword}
                   >
                     <Text style={styles.smallButtonText}>Сменить</Text>
@@ -355,7 +375,9 @@ export default function Settings() {
                 style={styles.changePasswordButton}
                 onPress={() => setShowChangePassword(true)}
               >
-                <Text style={styles.changePasswordButtonText}>Сменить пароль</Text>
+                <Text style={styles.changePasswordButtonText}>
+                  Сменить пароль
+                </Text>
               </TouchableOpacity>
             )
           ) : (
@@ -387,28 +409,39 @@ export default function Settings() {
               <Text style={styles.exitText}>Выйти из аккаунта</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </SafeAreaView>
       </ScrollView>
 
-      {/* Toast */}
       <Toast
         config={{
           success: (internal) => (
-            <View style={[styles.toastContainer, { backgroundColor: '#2ecc71' }]}>
+            <View
+              style={[styles.toastContainer, { backgroundColor: "#2ecc71" }]}
+            >
               <Text style={styles.toastText}>{internal.text1}</Text>
-              {internal.text2 ? <Text style={styles.toastTextSecondary}>{internal.text2}</Text> : null}
+              {internal.text2 ? (
+                <Text style={styles.toastTextSecondary}>{internal.text2}</Text>
+              ) : null}
             </View>
           ),
           error: (internal) => (
-            <View style={[styles.toastContainer, { backgroundColor: '#e74c3c' }]}>
+            <View
+              style={[styles.toastContainer, { backgroundColor: "#e74c3c" }]}
+            >
               <Text style={styles.toastText}>{internal.text1}</Text>
-              {internal.text2 ? <Text style={styles.toastTextSecondary}>{internal.text2}</Text> : null}
+              {internal.text2 ? (
+                <Text style={styles.toastTextSecondary}>{internal.text2}</Text>
+              ) : null}
             </View>
           ),
           info: (internal) => (
-            <View style={[styles.toastContainer, { backgroundColor: '#3498db' }]}>
+            <View
+              style={[styles.toastContainer, { backgroundColor: "#3498db" }]}
+            >
               <Text style={styles.toastText}>{internal.text1}</Text>
-              {internal.text2 ? <Text style={styles.toastTextSecondary}>{internal.text2}</Text> : null}
+              {internal.text2 ? (
+                <Text style={styles.toastTextSecondary}>{internal.text2}</Text>
+              ) : null}
             </View>
           ),
         }}
@@ -421,28 +454,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#212121",
-    paddingTop: 32,
+    paddingTop: 14,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40, 
+    paddingBottom: 40,
   },
   profilecontainer: {
     width: "100%",
-    marginVertical: 8,
     paddingHorizontal: 32,
   },
   headeronmenu: {
     textAlign: "center",
-    marginBottom: 16,
   },
   header: {
     textAlign: "center",
     color: "#fff",
     fontWeight: "500",
-    fontSize: 22,
+    fontSize: 26,
   },
   fio: {
     textAlign: "center",
@@ -476,9 +507,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     borderRadius: 45,
   },
-  osnov: {
-    marginTop: 15,
-  },
+
   inputholder: {
     color: "#fff",
     fontSize: 16,
@@ -600,12 +629,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   toastContainer: {
-    width: '90%',
+    width: "90%",
     maxWidth: 400,
     padding: 15,
     borderRadius: 12,
-    justifyContent: 'center',
-    shadowColor: '#000',
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -613,12 +642,12 @@ const styles = StyleSheet.create({
   },
   toastText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   toastTextSecondary: {
     fontSize: 14,
-    color: '#fff',
+    color: "#fff",
     opacity: 0.9,
     marginTop: 4,
   },

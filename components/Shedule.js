@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
-  SafeAreaView,
+  
   View,
   ActivityIndicator,
   TouchableOpacity,
   ScrollView
 } from 'react-native';
 import axios from 'axios';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -72,7 +73,7 @@ export default function Schedule() {
       if (!Array.isArray(response.data)) {
         throw new Error('Некорректный формат данных от сервера');
       }
-
+      console.log(response.data);
       setSchedule(response.data);
     } catch (err) {
       const errorMessage =
@@ -146,7 +147,6 @@ export default function Schedule() {
     
       <Text style={styles.selectedDate}>{formatFullDate(currentDate)}</Text>
 
-      {/* Расписание */}
       {loading ? (
         <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
       ) : error ? (
@@ -156,13 +156,15 @@ export default function Schedule() {
           {schedule.map((lesson, index) => {
             const time = `${lesson.start_time} – ${lesson.stop_time}`;
             const subject = lesson.title || 'Название не указано';
-            const room = lesson.classrooms ? lesson.classrooms.join(', ') : 'Аудитория не указана';
-
+            const room = lesson.classrooms ? '№' +  lesson.classrooms.join(', ') : 'не указан';
+            const teacher = lesson.teacher ? lesson.teacher : 'Не указан';
+            const replacement = lesson.replacement ? '(Замена)' : '';
             return (
               <View key={index} style={styles.lessonItem}>
                 <Text style={styles.lessonTime}>{time}</Text>
-                <Text style={styles.lessonSubject}>{subject}</Text>
-                <Text style={styles.lessonRoom}>Аудитория: {room}</Text>
+                <Text style={styles.lessonSubject}>{subject}{replacement}</Text>
+                <Text style={styles.lessonRoom}>Кабинет: {room}</Text>
+                <Text style={styles.lessonRoom}>Преподаватель: {teacher}</Text>
               </View>
             );
           })}
@@ -179,26 +181,26 @@ const styles = StyleSheet.create({
   headeronmenu: {
     textAlign: 'center',
     marginBottom: 16,
-    paddingTop: 14,
   },
   headermenu: {
     textAlign: 'center',
     color: '#fff',
     fontWeight: '500',
-    fontSize: 22,
+    fontSize: 26,
   },
 
   container: {
     flex: 1,
     backgroundColor: '#212121',
-    padding: 16,
+    paddingBottom:0,
+    padding: 19,
   },
 
   weekHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    
   },
   weekTitle: {
     fontSize: 18,
@@ -221,6 +223,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: '#2c2c2c',
     paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -264,6 +267,7 @@ const styles = StyleSheet.create({
 
   scheduleList: {
     marginTop: 10,
+   
   },
   lessonItem: {
     backgroundColor: '#2c2c2c',

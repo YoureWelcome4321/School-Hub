@@ -35,9 +35,9 @@ export default function BottomMenu() {
           component={Shedule}
           options={{
             tabBarLabel: "Расписание",
-            tabBarLabelStyle: { fontSize: 12},
+            tabBarLabelStyle: { fontSize: 14},
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="calendar" color={color} size={24} />
+              <MaterialCommunityIcons name="calendar" color={color} size={26} />
             ),
           }}
         />
@@ -46,9 +46,9 @@ export default function BottomMenu() {
           component={Clubs}
           options={{
             tabBarLabel: "Клубы",
-            tabBarLabelStyle: { fontSize: 12},
+            tabBarLabelStyle: { fontSize: 14},
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="account-group" color={color} size={24} />
+              <MaterialCommunityIcons name="account-group" color={color} size={26} />
             ),
           }}
         />
@@ -57,9 +57,9 @@ export default function BottomMenu() {
           component={News}
           options={{
             tabBarLabel: "Новости",
-            tabBarLabelStyle: { fontSize: 12},
+            tabBarLabelStyle: { fontSize: 14},
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="newspaper" color={color} size={24} />
+              <MaterialCommunityIcons name="newspaper" color={color} size={26} />
             ),
           }}
         />
@@ -68,9 +68,9 @@ export default function BottomMenu() {
           component={Settings}
           options={{
             tabBarLabel: "Профиль",
-            tabBarLabelStyle: { fontSize: 12},
+            tabBarLabelStyle: { fontSize: 14},
             tabBarIcon: ({ color }) => (
-              <MaterialCommunityIcons name="account" color={color} size={24} />
+              <MaterialCommunityIcons name="account" color={color} size={26} />
             ),
           }}
         />

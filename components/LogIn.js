@@ -5,11 +5,11 @@ import {
   StyleSheet,
   Text,
   Image,
-  SafeAreaView,
   TextInput,
   TouchableOpacity,
  
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import axios from "axios";
 import { useNavigation } from '@react-navigation/native';
@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
   content: {
     justifyContent: "center",
     alignItems: "center",
+    paddingTop: 0,
     padding: 20,
   },
   logo: {
