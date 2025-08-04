@@ -1,17 +1,17 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
-  
+  Image,
   View,
   ActivityIndicator,
   TouchableOpacity,
-  ScrollView
+  ScrollView,
+  PanResponder,
 } from 'react-native';
 import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Schedule() {
@@ -19,9 +19,9 @@ export default function Schedule() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [weekDates, setWeekDates] = useState([]); 
+  const [weekDates, setWeekDates] = useState([]);
 
-
+  
   const getWeekDates = (date) => {
     const day = date.getDay();
     const diff = date.getDate() - (day === 0 ? 6 : day - 1); 
@@ -41,12 +41,11 @@ export default function Schedule() {
     return days[date.getDay()];
   };
 
-  // Форматируем число (день месяца)
   const formatNumber = (date) => {
     return date.getDate().toString().padStart(2, '0');
   };
 
-  // Функция для получения расписания по дате
+  
   const fetchSchedule = async (date) => {
     setLoading(true);
     setError(null);
@@ -73,7 +72,7 @@ export default function Schedule() {
       if (!Array.isArray(response.data)) {
         throw new Error('Некорректный формат данных от сервера');
       }
-      console.log(response.data);
+
       setSchedule(response.data);
     } catch (err) {
       const errorMessage =
@@ -87,18 +86,18 @@ export default function Schedule() {
     }
   };
 
- 
+  
   useEffect(() => {
+    console.log('Текущая дата изменилась на:', currentDate.toDateString());
     setWeekDates(getWeekDates(currentDate));
   }, [currentDate]);
 
-  
+ 
   useEffect(() => {
     fetchSchedule(currentDate);
   }, [currentDate]);
 
- 
-
+  
   const formatFullDate = (date) => {
     const options = {
       weekday: 'long',
@@ -106,80 +105,152 @@ export default function Schedule() {
       month: 'long',
       year: 'numeric',
     };
-    return date.toLocaleDateString('ru-RU', options).replace(/^\w/, (c) => c.toUpperCase());
+    return date
+      .toLocaleDateString('ru-RU', options)
+      .replace(/^\w/, (c) => c.toUpperCase());
   };
+
+  // Обработчик свайпов: переключение между днями
+ const panResponder = useRef(
+  PanResponder.create({
+    onMoveShouldSetPanResponder: (evt, gestureState) => {
+      const { dx, dy } = gestureState;
+      return Math.abs(dx) > 20 && Math.abs(dy) < 20;
+    },
+    onPanResponderRelease: (evt, gestureState) => {
+      const { dx } = gestureState;
+
+      if (dx > 30) {
+        const prevDay = currentDate;
+        prevDay.setDate(prevDay.getDate() - 1);
+        console.log(prevDay)
+        setCurrentDate(new Date(prevDay));
+      } else if (dx < -30) {
+        const nextDay = currentDate;
+        nextDay.setDate(nextDay.getDate() + 1);
+        console.log(nextDay)
+        setCurrentDate(new Date(nextDay));
+      }
+    },
+  })
+).current;
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
-      <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false} 
-              bounces={false} 
-            >
-      <View style={styles.headeronmenu}>
-        <Text style={styles.headermenu}>Расписание</Text>
-      </View>
+      <View style={{ flex: 1 }} {...panResponder.panHandlers}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          {/* Заголовок */}
+          <View style={styles.headeronmenu}>
+            <Text style={styles.headermenu}>Расписание</Text>
+          </View>
 
-  
-      
-      <View style={styles.daysContainer}>
-        {weekDates.map((date, index) => {
-          const isCurrent = date.toDateString() === currentDate.toDateString();
-          return (
+
+          {/* Кнопки дней недели */}
+          <View style={styles.daysContainer}>
+            {weekDates.map((date, index) => {
+              const isCurrent =
+                date.toDateString() === currentDate.toDateString();
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.dayButton, isCurrent && styles.dayButtonActive]}
+                  onPress={() => setCurrentDate(date)}
+                >
+                  <Text
+                    style={[styles.dayName, isCurrent && styles.dayTextActive]}
+                  >
+                    {formatDay(date)}
+                  </Text>
+                  <Text
+                    style={[styles.dayNumber, isCurrent && styles.dayTextActive]}
+                  >
+                    {formatNumber(date)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.weekNavigation}>
             <TouchableOpacity
-              key={index}
-              style={[styles.dayButton, isCurrent && styles.dayButtonActive]}
-              onPress={() => setCurrentDate(date)}
+              onPress={() => {
+                const prevDay = new Date(currentDate);
+                prevDay.setDate(prevDay.getDate() - 1);
+                console.log(prevDay)
+                setCurrentDate(prevDay);
+              }}
             >
-              <Text style={[styles.dayName, isCurrent && styles.dayTextActive]}>
-                {formatDay(date)}
-              </Text>
-              <Text style={[styles.dayNumber, isCurrent && styles.dayTextActive]}>
-                {formatNumber(date)}
-              </Text>
+              <Text style={styles.navArrow}>‹</Text>
             </TouchableOpacity>
-          );
-        })}
+
+            <Text style={styles.selectedDateLabel}>
+              {formatFullDate(currentDate)}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                const nextDay = new Date(currentDate);
+                nextDay.setDate(nextDay.getDate() + 1);
+                console.log(nextDay)
+                setCurrentDate(nextDay);
+              }}
+            >
+              <Text style={styles.navArrow}>›</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Список занятий или сообщение */}
+          {loading ? (
+            <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
+          ) : error ? (
+            <Text style={styles.error}>{error}</Text>
+          ) : schedule.length > 0 ? (
+            <View style={styles.scheduleList}>
+              {schedule.map((lesson, index) => {
+                const time = `${lesson.start_time} – ${lesson.stop_time}`;
+                const subject = lesson.title || 'Название не указано';
+                const room = lesson.classrooms
+                  ? '№' + lesson.classrooms.join(', ')
+                  : 'не указан';
+                const teacher = lesson.teachers
+                  ? lesson.teachers.join(', ')
+                  : 'Не указан';
+                const replacement = lesson.replacement ? ' (Замена)' : '';
+                return (
+                  <View key={index} style={styles.lessonItem}>
+                    <Text style={styles.lessonTime}>{time}</Text>
+                    <Text style={styles.lessonSubject}>
+                      {subject}
+                      {replacement}
+                    </Text>
+                    <Text style={styles.lessonRoom}>Кабинет: {room}</Text>
+                    <Text style={styles.lessonRoom}>
+                      Преподаватель: {teacher}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <>
+            <Image source={require('../assets/noshedule.png')} style={{ width: 170, height: 170, alignSelf: 'center', marginTop: 25}} />
+            <Text style={styles.noData}>Расписание на этот день отсутствует, отдыхайте</Text>
+            </>
+          )}
+        </ScrollView>
       </View>
-
-    
-      <Text style={styles.selectedDate}>{formatFullDate(currentDate)}</Text>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
-      ) : error ? (
-        <Text style={styles.error}>{error}</Text>
-      ) : schedule.length > 0 ? (
-        <View style={styles.scheduleList}>
-          {schedule.map((lesson, index) => {
-            const time = `${lesson.start_time} – ${lesson.stop_time}`;
-            const subject = lesson.title || 'Название не указано';
-            const room = lesson.classrooms ? '№' +  lesson.classrooms.join(', ') : 'не указан';
-            const teacher = lesson.teacher ? lesson.teacher : 'Не указан';
-            const replacement = lesson.replacement ? '(Замена)' : '';
-            return (
-              <View key={index} style={styles.lessonItem}>
-                <Text style={styles.lessonTime}>{time}</Text>
-                <Text style={styles.lessonSubject}>{subject}{replacement}</Text>
-                <Text style={styles.lessonRoom}>Кабинет: {room}</Text>
-                <Text style={styles.lessonRoom}>Преподаватель: {teacher}</Text>
-              </View>
-            );
-          })}
-        </View>
-      ) : (
-        <Text style={styles.noData}>Расписание на этот день отсутствует</Text>
-      )}
-      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   headeronmenu: {
-    textAlign: 'center',
     marginBottom: 16,
   },
   headermenu: {
@@ -188,39 +259,38 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 26,
   },
-
   container: {
     flex: 1,
     backgroundColor: '#212121',
-    paddingBottom:0,
     padding: 19,
+    paddingBottom: 0,
   },
-
-  weekHeader: {
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  weekNavigation: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     
   },
-  weekTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginHorizontal: 10,
-  },
-  navButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  navText: {
-    fontSize: 24,
+  navArrow: {
+    fontSize: 28,
     color: '#007AFF',
+    paddingHorizontal: 10,
   },
-
+  selectedDateLabel: {
+    fontSize: 16,
+    color: '#a2acb4',
+    fontWeight: '500',
+  },
   daysContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 10,
     backgroundColor: '#2c2c2c',
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -253,21 +323,11 @@ const styles = StyleSheet.create({
   dayTextActive: {
     color: '#fff',
   },
-
-  selectedDate: {
-    fontSize: 16,
-    color: '#a2acb4',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-
   loader: {
     marginTop: 20,
   },
-
   scheduleList: {
-    marginTop: 10,
-   
+    marginTop: 5,
   },
   lessonItem: {
     backgroundColor: '#2c2c2c',
@@ -297,9 +357,9 @@ const styles = StyleSheet.create({
   },
   noData: {
     textAlign: 'center',
-    color: '#999',
-    fontSize: 16,
-    marginTop: 20,
+    color: '#a0a9b1',
+    fontSize: 18,
+    marginTop: 19,
   },
   error: {
     textAlign: 'center',
