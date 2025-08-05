@@ -20,6 +20,7 @@ export default function Schedule() {
   const [error, setError] = useState(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekDates, setWeekDates] = useState([]);
+  const [replacement , setReplacement] = useState(false)
 
   
   const getWeekDates = (date) => {
@@ -178,31 +179,12 @@ export default function Schedule() {
           </View>
 
           <View style={styles.weekNavigation}>
-            <TouchableOpacity
-              onPress={() => {
-                const prevDay = new Date(currentDate);
-                prevDay.setDate(prevDay.getDate() - 1);
-                console.log(prevDay)
-                setCurrentDate(prevDay);
-              }}
-            >
-              <Text style={styles.navArrow}>‹</Text>
-            </TouchableOpacity>
+           
 
             <Text style={styles.selectedDateLabel}>
               {formatFullDate(currentDate)}
             </Text>
 
-            <TouchableOpacity
-              onPress={() => {
-                const nextDay = new Date(currentDate);
-                nextDay.setDate(nextDay.getDate() + 1);
-                console.log(nextDay)
-                setCurrentDate(nextDay);
-              }}
-            >
-              <Text style={styles.navArrow}>›</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Список занятий или сообщение */}
@@ -210,7 +192,8 @@ export default function Schedule() {
             <ActivityIndicator size="large" color="#007AFF" style={styles.loader} />
           ) : error ? (
             <Text style={styles.error}>{error}</Text>
-          ) : schedule.length > 0 ? (
+          ) : schedule.length > 0 ?  (
+            
             <View style={styles.scheduleList}>
               {schedule.map((lesson, index) => {
                 const time = `${lesson.start_time} – ${lesson.stop_time}`;
@@ -221,9 +204,11 @@ export default function Schedule() {
                 const teacher = lesson.teachers
                   ? lesson.teachers.join(', ')
                   : 'Не указан';
-                const replacement = lesson.replacement ? ' (Замена)' : '';
+                
                 return (
-                  <View key={index} style={styles.lessonItem}>
+                  <View key={index} style={lesson.replacement ? styles.lessonItemReplacement : styles.lessonItem}>
+                    {lesson.replacement && (
+                      <Text style={{ color: '#d84e4e', fontSize: 16, marginBottom: 4, right:12,top:15, position:'absolute' }}>Замена</Text>)}
                     <Text style={styles.lessonTime}>{time}</Text>
                     <Text style={styles.lessonSubject}>
                       {subject}
@@ -272,8 +257,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   weekNavigation: {
+    marginVertical: 7,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     
   },
@@ -340,6 +326,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+
+  lessonItemReplacement:{
+    backgroundColor: '#2c2c2c',
+    borderColor: '#d84e4e',
+    borderWidth: 2,
+    padding: 16,
+    marginVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
   lessonTime: {
     fontSize: 16,
     color: '#007AFF',
