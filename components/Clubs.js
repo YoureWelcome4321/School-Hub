@@ -15,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Clubs({ navigation }) {
   const [clubs, setClubs] = useState([]);
+  const [filteredClubs, setFilteredClubs] = useState([]);
   const [selectedClub, setSelectedClub] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
@@ -25,8 +26,9 @@ export default function Clubs({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [activeTab, setActiveTab] = useState("all"); // 'my', 'all', 'top'
 
-  // Загрузка списка клубов
+  // Загрузка всех клубов
   const fetchClubs = async () => {
     setLoading(true);
     try {
@@ -34,7 +36,6 @@ export default function Clubs({ navigation }) {
       const response = await axios.get("https://api.school-hub.ru/clubs/list", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(response.data)
       setClubs(response.data);
     } catch (err) {
       setError("Не удалось загрузить клубы");
@@ -46,6 +47,21 @@ export default function Clubs({ navigation }) {
   useEffect(() => {
     fetchClubs();
   }, []);
+
+  // Фильтрация клубов при изменении activeTab
+  useEffect(() => {
+    if (activeTab === "my") {
+      setFilteredClubs(clubs.filter((club) => club.joined));
+    } else if (activeTab === "all") {
+      setFilteredClubs(clubs.filter((club) => !club.joined));
+    } else if (activeTab === "top") {
+      // Сортировка по количеству участников (можно уточнить бэкенд-логику)
+      const sorted = [...clubs]
+        .sort((a, b) => b.members_count - a.members_count)
+        .slice(0, 10); // Топ-10
+      setFilteredClubs(sorted);
+    }
+  }, [activeTab, clubs]);
 
   // Сброс уведомлений
   useEffect(() => {
@@ -188,32 +204,64 @@ export default function Clubs({ navigation }) {
         <Text style={styles.headerTitle}>Клубы</Text>
       </View>
 
+      {/* Категории (вкладки) */}
+      <View style={styles.tabs}>
+                <TouchableOpacity
+          style={[styles.tab, activeTab === "all" && styles.activeTab]}
+          onPress={() => setActiveTab("all")}
+        >
+          <Text style={[styles.tabText, activeTab === "all" && styles.activeTabText]}>
+            Все
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "my" && styles.activeTab]}
+          onPress={() => setActiveTab("my")}
+        >
+          <Text style={[styles.tabText, activeTab === "my" && styles.activeTabText]}>
+            Мои
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "top" && styles.activeTab]}
+          onPress={() => setActiveTab("top")}
+        >
+          <Text style={[styles.tabText, activeTab === "top" && styles.activeTabText]}>
+            Топ
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Список клубов */}
         {!selectedClub && !isCreating && (
           <View style={styles.listContainer}>
             {loading ? (
               <Text style={styles.loading}>Загрузка...</Text>
-            ) : clubs.length === 0 ? (
+            ) : filteredClubs.length === 0 ? (
               <Text style={styles.noData}>Клубы не найдены</Text>
             ) : (
-              clubs.map((club) => (
+              filteredClubs.map((club) => (
                 <TouchableOpacity
                   key={club.id}
                   style={styles.card}
                   onPress={() => openClubDetails(club.id)}
                 >
                   <Text style={styles.cardTitle}>{club.title}</Text>
-                  <Text style={styles.limits}>Для учеников от {club.class_limit_min} до {club.class_limit_max} класса</Text>
+                  <Text style={styles.limits}>
+                    Для учеников от {club.class_limit_min} до {club.class_limit_max} класса
+                  </Text>
                   <View style={styles.cardFooter}>
-  
                     <Text style={styles.cardMeta}>Участников: {club.members_count}</Text>
                   </View>
                 </TouchableOpacity>
               ))
             )}
 
-            <TouchableOpacity style={styles.addButton} onPress={() => setIsCreating(true)}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setIsCreating(true)}
+            >
               <Text style={styles.addButtonText}>+ Создать клуб</Text>
             </TouchableOpacity>
           </View>
@@ -222,13 +270,15 @@ export default function Clubs({ navigation }) {
         {/* Детали клуба */}
         {selectedClub && !isCreating && (
           <View style={styles.detailsContainer}>
-            <TouchableOpacity onPress={() => setSelectedClub(null)} style={styles.backButton}>
+            <TouchableOpacity
+              onPress={() => setSelectedClub(null)}
+              style={styles.backButton}
+            >
               <Text style={styles.backText}>← Назад</Text>
             </TouchableOpacity>
 
             <Text style={styles.detailsTitle}>{selectedClub.title}</Text>
             <Text style={styles.detailsDesc}>{selectedClub.description}</Text>
-
 
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Участников:</Text>
@@ -303,7 +353,7 @@ export default function Clubs({ navigation }) {
   );
 }
 
-// Стили
+// Стили (добавлены стили для вкладок)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -336,6 +386,31 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 14,
   },
+  tabs: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 16,
+    backgroundColor: "#2c2c2c",
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  activeTab: {
+    backgroundColor: "#007AFF",
+  },
+  tabText: {
+    color: "#a2acb4",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  activeTabText: {
+    color: "#fff",
+  },
   listContainer: {
     gap: 12,
   },
@@ -351,7 +426,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginBottom: 6,
   },
-  limits:{
+  limits: {
     color: "#9ea8b0",
     fontSize: 15,
     marginBottom: 5,
@@ -391,7 +466,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
   },
-
+  detailsDesc: {
+    color: "#a2acb4",
+    fontSize: 16,
+    lineHeight: 24,
+    marginTop: 8,
+  },
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
