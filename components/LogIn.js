@@ -1,5 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import React from "react";
+import { Linking } from 'react-native';
 import {
   View,
   StyleSheet,
@@ -26,12 +27,19 @@ export default function LogIn() {
 
   const [validated, setValidated] = useState(false);
 
+  const [tgUrl, setUrl] = useState()
+
   const handleInputChange = (name, text) => {
   setFormSignInData((prev) => ({
     ...prev,
     [name]: text,
   }));
 };
+
+ const handlePress = () => {
+    GetTg()
+    Linking.openURL(tgUrl).catch(err => console.error("Не удалось открыть URL:", err));
+  };
 
 
   async function SendLogIn() {
@@ -68,6 +76,21 @@ export default function LogIn() {
         console.log("Ошибка настройки:", error.message);
       }
       setValidated(true);
+    }
+  }
+
+
+  async function GetTg() {
+    try {
+      const response = await axios.get("https://api.school-hub.ru/auth/telegram/url", {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      console.log(response)
+      setUrl(response.data.url)
+    } catch (error) {
+        console.log("Нет ответа от сервера:", error.request);
     }
   }
 
@@ -119,7 +142,7 @@ export default function LogIn() {
 
           <Text style={styles.orText}>Или используй для входа соцсети:</Text>
 
-          <TouchableOpacity style={styles.telegramButton}>
+          <TouchableOpacity onPress={handlePress} style={styles.telegramButton}>
             <Image
               style={styles.telelogo}
               source={require("../assets/TelegramLogo.png")}
@@ -167,7 +190,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: "100%",
-    paddingTop: 20,
     paddingBottom: 20,
     paddingLeft: 15,
     paddingRight: 15,

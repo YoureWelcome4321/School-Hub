@@ -126,7 +126,7 @@ export default function News() {
           <TouchableOpacity onPress={goBack} style={styles.backButton}>
             <Text style={styles.backText}>← Назад</Text>
           </TouchableOpacity>
-
+        <View style={styles.cardContainer}>
           <Text style={styles.detailsTitle}>{selectedItem.title}</Text>
           {selectedItem.image_path ? (
             <Image
@@ -154,6 +154,7 @@ export default function News() {
               </Text>
             </View>
           )}
+          </View>
         </View>
       );
     }
@@ -200,6 +201,7 @@ export default function News() {
                     Подробнее
                   </Text>
                 )}
+              
               </View>
             </TouchableOpacity>
           ))
@@ -380,8 +382,16 @@ const styles = StyleSheet.create({
     color: "#9ea8b0",
   },
   detailsContainer: {
-    padding: 8,
+    padding:4,
     gap: 16,
+   
+  },
+
+  cardContainer: {
+    padding:22,
+    backgroundColor:'#2c2c2c',
+    borderRadius:14,
+    gap:18
   },
 
   backText: {

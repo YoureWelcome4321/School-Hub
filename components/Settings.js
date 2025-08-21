@@ -15,14 +15,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
+import { Linking } from 'react-native';
 
 export default function Settings() {
   const [isEditing, setIsEditing] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-
-  // Состояние для привязки почты
   const [isAddingEmail, setIsAddingEmail] = useState(false);
   const [emailInput, setEmailInput] = useState("");
 
@@ -36,49 +35,45 @@ export default function Settings() {
     name: "",
   });
 
-  const navigation = useNavigation();
-
-  async function Exit() {
-    await AsyncStorage.removeItem("token");
-    navigation.navigate("LogIn");
-    console.log("Выход из аккаунта");
-  }
-
   const [originalData, setOriginalData] = useState({});
+  const navigation = useNavigation();
+  const [tgUrl, setUrl] = useState()
+
+  const showToast = (type, title, message) => {
+    Toast.show({
+      type,
+      text1: title,
+      text2: message,
+      visibilityTime: 3000,
+      autoHide: true,
+      position: "top",
+      topOffset: 40,
+    });
+  };
+
+  const getProfileData = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        showToast("error", "Ошибка", "Токен не найден.");
+        return;
+      }
+
+      const response = await axios.get("https://api.school-hub.ru/settings/info", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = response.data;
+      setProfileData(data);
+      setOriginalData(data);
+      if (data.email) setEmailInput(data.email);
+    } catch (error) {
+      console.log("Ошибка загрузки профиля:", error.response?.data || error.message);
+      showToast("error", "Ошибка", "Не удалось загрузить данные.");
+    }
+  };
 
   useEffect(() => {
-    async function getProfileData() {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        if (!token) {
-          showToast("error", "Ошибка", "Токен не найден. Войдите снова.");
-          return;
-        }
-
-        const response = await axios.get(
-          "https://api.school-hub.ru/settings/info",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = response.data;
-        setProfileData(data);
-        setOriginalData(data);
-        if (data.email) {
-          setEmailInput(data.email);
-        }
-      } catch (error) {
-        console.log(
-          "Ошибка при загрузке профиля:",
-          error.response?.data || error.message
-        );
-        showToast("error", "Ошибка", "Не удалось загрузить данные профиля.");
-      }
-    }
-
     getProfileData();
   }, []);
 
@@ -102,12 +97,7 @@ export default function Settings() {
             axios.post(
               "https://api.school-hub.ru/settings/login/set",
               { login: profileData.login },
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-              }
+              { headers: { Authorization: `Bearer ${token}` } }
             )
           );
         }
@@ -117,12 +107,7 @@ export default function Settings() {
             axios.post(
               "https://api.school-hub.ru/settings/email/set",
               { email: profileData.email },
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  "Content-Type": "application/json",
-                },
-              }
+              { headers: { Authorization: `Bearer ${token}` } }
             )
           );
         }
@@ -130,163 +115,140 @@ export default function Settings() {
         if (updates.length > 0) {
           await Promise.all(updates);
           setOriginalData({ ...profileData });
-          showToast("success", "Успех", "Данные успешно обновлены!");
+          showToast("success", "Успех", "Данные обновлены.");
         } else {
-          showToast("info", "Без изменений", "Изменений не обнаружено.");
+          showToast("info", "Без изменений", "Изменений нет.");
         }
       } catch (error) {
-        console.log(
-          "Ошибка при сохранении:",
-          error.response?.data || error.message
-        );
         const message =
-          error.response?.data?.message || "Не удалось сохранить изменения.";
+          error.response?.data?.message || "Не удалось сохранить.";
         showToast("error", "Ошибка", message);
       }
     }
 
     setIsEditing(!isEditing);
-    if (isEditing) {
-      setShowChangePassword(false);
-    }
+    if (isEditing) setShowChangePassword(false);
   };
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword) {
-      showToast("error", "Ошибка", "Заполните все поля");
+      showToast("error", "Ошибка", "Заполните все поля.");
       return;
     }
 
     if (newPassword.length < 6) {
-      showToast(
-        "error",
-        "Ошибка",
-        "Новый пароль должен быть не менее 6 символов"
-      );
+      showToast("error", "Ошибка", "Пароль ≥ 6 символов.");
       return;
     }
 
     try {
       const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        showToast("error", "Ошибка", "Токен не найден.");
-        return;
-      }
-
       await axios.post(
         "https://api.school-hub.ru/settings/password/change",
         {
           current_password: currentPassword,
           new_password: newPassword,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      showToast("success", "Успех", "Пароль успешно изменён");
+      showToast("success", "Готово", "Пароль изменён.");
       setCurrentPassword("");
       setNewPassword("");
       setShowChangePassword(false);
     } catch (error) {
       const message =
-        error.response?.data?.message ||
-        "Не удалось изменить пароль. Проверьте текущий пароль.";
+        error.response?.data?.message || "Неверный текущий пароль.";
       showToast("error", "Ошибка", message);
     }
   };
 
+  const handlePress = () => {
+      GetTg()
+      Linking.openURL(tgUrl).catch(err => console.error("Не удалось открыть URL:", err));
+  };
+
+  async function GetTg() {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await axios.get("https://api.school-hub.ru/settings/telegram/connect",  {
+        headers: {
+          "Content-Type": "application/json",
+          headers: { Authorization: `Bearer ${token}` }
+        },
+      });
+      console.log(response)
+      setUrl(response.data.url)
+    } catch (error) {
+        console.log("Нет ответа от сервера:", error.request);
+    }
+  }
+
   const handleAddEmail = async () => {
-    if (!emailInput || !emailInput.includes("@")) {
-      showToast("error", "Ошибка", "Введите корректный email");
+    if (!emailInput.includes("@")) {
+      showToast("error", "Ошибка", "Введите корректный email.");
       return;
     }
 
     try {
       const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        showToast("error", "Ошибка", "Токен не найден.");
-        return;
-      }
-
       await axios.post(
         "https://api.school-hub.ru/settings/email/set",
         { email: emailInput },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       setProfileData((prev) => ({ ...prev, email: emailInput }));
       setOriginalData((prev) => ({ ...prev, email: emailInput }));
       setIsAddingEmail(false);
-      showToast(
-        "success",
-        "Почта добавлена",
-        "На вашу почту отправлено письмо подтверждения"
-      );
+      showToast("success", "Почта добавлена", "Проверьте письмо.");
     } catch (error) {
-      const message =
-        error.response?.data?.message || "Не удалось добавить почту.";
+      const message = error.response?.data?.message || "Не удалось добавить.";
       showToast("error", "Ошибка", message);
     }
   };
 
-  const showToast = (type, title, message) => {
-    Toast.show({
-      type,
-      text1: title,
-      text2: message,
-      visibilityTime: 3000,
-      autoHide: true,
-      position: "top",
-      topOffset: 50,
-    });
+  const Exit = async () => {
+    await AsyncStorage.removeItem("token");
+    navigation.navigate("LogIn");
+    showToast("info", "Выход", "Вы вышли из аккаунта.");
   };
 
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
       <ScrollView
-        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        <SafeAreaView style={styles.profilecontainer}>
-          <View style={styles.headeronmenu}>
+        <SafeAreaView style={styles.containerInner}>
+          {/* Заголовок и аватар */}
+          <View style={styles.headerContainer}>
             <Text style={styles.header}>Профиль</Text>
           </View>
-          <SafeAreaView style={styles.osnov}>
-            <Image
-              style={styles.profileIcon}
-              source={require("../assets/Profile.png")}
-            />
-            <Text style={styles.fio}>
+
+          <View style={styles.profileSection}>
+            <Image source={require("../assets/Profile.png")} style={styles.avatar} />
+            <Text style={styles.name}>
               {profileData.name} {profileData.surname?.[0]}.
             </Text>
             <Text style={styles.class}>
-              {profileData.class_number}
-              {profileData.class_letter} класс
+              {profileData.class_number}{profileData.class_letter} класс
             </Text>
-          </SafeAreaView>
+          </View>
 
-          <TouchableOpacity onPress={toggleEdit} style={styles.forgotPassword}>
-            <MaterialCommunityIcons name="draw" color="#007AFF" size={24} />
-            <Text style={styles.forgotPasswordText}>
-              {isEditing ? "Сохранить изменения" : "Редактировать"}
+          <TouchableOpacity onPress={toggleEdit} style={styles.editButton}>
+            <MaterialCommunityIcons name="draw" color="#007AFF" size={20} />
+            <Text style={styles.editButtonText}>
+              {isEditing ? "Сохранить" : "Редактировать"}
             </Text>
           </TouchableOpacity>
 
-          <Text style={styles.inputholder}>Логин:</Text>
+          {/* Логин */}
+          <Text style={styles.label}>Логин</Text>
           <TextInput
-            style={[styles.input, isEditing && styles.inputEditing]}
+            style={[styles.input, isEditing && styles.inputActive]}
             value={profileData.login}
             onChangeText={(text) => handleChange("login", text)}
             placeholder="@username"
@@ -294,10 +256,11 @@ export default function Settings() {
             editable={isEditing}
           />
 
-          <Text style={styles.inputholder}>Почта:</Text>
+          {/* Почта */}
+          <Text style={styles.label}>Почта</Text>
           {profileData.email ? (
             <TextInput
-              style={[styles.input, isEditing && styles.inputEditing]}
+              style={[styles.input, isEditing && styles.inputActive]}
               value={profileData.email}
               onChangeText={(text) => handleChange("email", text)}
               placeholder="Email"
@@ -306,16 +269,13 @@ export default function Settings() {
               editable={isEditing}
             />
           ) : !isAddingEmail ? (
-            <TouchableOpacity
-              style={styles.addEmailButton}
-              onPress={() => setIsAddingEmail(true)}
-            >
-              <Text style={styles.addEmailButtonText}>Привязать почту</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={() => setIsAddingEmail(true)}>
+              <Text style={styles.actionButtonText}>Привязать почту</Text>
             </TouchableOpacity>
           ) : (
-            <View style={styles.emailContainer}>
+            <View style={styles.emailRow}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { flex: 1, marginRight: 8 }]}
                 value={emailInput}
                 onChangeText={setEmailInput}
                 placeholder="Введите email"
@@ -323,17 +283,14 @@ export default function Settings() {
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleAddEmail}
-              >
-                <Text style={styles.confirmButtonText}>Подтвердить</Text>
+              <TouchableOpacity style={styles.confirmBtn} onPress={handleAddEmail}>
+                <Text style={styles.confirmText}>✓</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Поле "Пароль" */}
-          <Text style={styles.inputholder}>Пароль:</Text>
+          {/* Пароль */}
+          <Text style={styles.label}>Пароль</Text>
           {isEditing ? (
             showChangePassword ? (
               <>
@@ -355,29 +312,27 @@ export default function Settings() {
                   secureTextEntry
                   autoCapitalize="none"
                 />
-                <View style={styles.passwordButtons}>
+                <View style={styles.passwordActions}>
                   <TouchableOpacity
-                    style={[styles.smallButton, { backgroundColor: "#fa5757" }]}
+                    style={[styles.smallBtn, { backgroundColor: "#666" }]}
                     onPress={() => setShowChangePassword(false)}
                   >
-                    <Text style={styles.smallButtonText}>Отмена</Text>
+                    <Text style={styles.smallText}>Отмена</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.smallButton, { backgroundColor: "#007AFF" }]}
+                    style={[styles.smallBtn, { backgroundColor: "#007AFF" }]}
                     onPress={handleChangePassword}
                   >
-                    <Text style={styles.smallButtonText}>Сменить</Text>
+                    <Text style={styles.smallText}>Сменить</Text>
                   </TouchableOpacity>
                 </View>
               </>
             ) : (
               <TouchableOpacity
-                style={styles.changePasswordButton}
+                style={styles.actionButton}
                 onPress={() => setShowChangePassword(true)}
               >
-                <Text style={styles.changePasswordButtonText}>
-                  Сменить пароль
-                </Text>
+                <Text style={styles.actionButtonText}>Сменить пароль</Text>
               </TouchableOpacity>
             )
           ) : (
@@ -391,57 +346,39 @@ export default function Settings() {
             />
           )}
 
-          <TouchableOpacity style={styles.telegramButton}>
-            <Image
-              style={styles.telelogo}
-              source={require("../assets/TelegramLogo.png")}
-            />
-            <Text style={styles.buttonText}>Привязать Telegram</Text>
+          {/* Telegram */}
+          <TouchableOpacity onPress={handlePress} style={styles.telegramBtn}>
+            <Image source={require("../assets/TelegramLogo.png")} style={styles.tgIcon} />
+            <Text style={styles.tgText}>Привязать Telegram</Text>
           </TouchableOpacity>
 
-          <View style={styles.exitanddelete}>
-            <TouchableOpacity style={styles.Exit} onPress={Exit}>
-              <MaterialCommunityIcons
-                name="exit-to-app"
-                color="#fa5757"
-                size={24}
-              />
-              <Text style={styles.exitText}>Выйти из аккаунта</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Выход */}
+          <TouchableOpacity style={styles.logoutBtn} onPress={Exit}>
+            <MaterialCommunityIcons name="exit-to-app" color="#fa5757" size={20} />
+            <Text style={styles.logoutText}>Выйти из аккаунта</Text>
+          </TouchableOpacity>
         </SafeAreaView>
       </ScrollView>
 
+      {/* Toast */}
       <Toast
         config={{
           success: (internal) => (
-            <View
-              style={[styles.toastContainer, { backgroundColor: "#2ecc71" }]}
-            >
-              <Text style={styles.toastText}>{internal.text1}</Text>
-              {internal.text2 ? (
-                <Text style={styles.toastTextSecondary}>{internal.text2}</Text>
-              ) : null}
+            <View style={[styles.toast, { backgroundColor: "#2ecc71" }]}>
+              <Text style={styles.toastTitle}>{internal.text1}</Text>
+              {internal.text2 && <Text style={styles.toastMsg}>{internal.text2}</Text>}
             </View>
           ),
           error: (internal) => (
-            <View
-              style={[styles.toastContainer, { backgroundColor: "#e74c3c" }]}
-            >
-              <Text style={styles.toastText}>{internal.text1}</Text>
-              {internal.text2 ? (
-                <Text style={styles.toastTextSecondary}>{internal.text2}</Text>
-              ) : null}
+            <View style={[styles.toast, { backgroundColor: "#e74c3c" }]}>
+              <Text style={styles.toastTitle}>{internal.text1}</Text>
+              {internal.text2 && <Text style={styles.toastMsg}>{internal.text2}</Text>}
             </View>
           ),
           info: (internal) => (
-            <View
-              style={[styles.toastContainer, { backgroundColor: "#3498db" }]}
-            >
-              <Text style={styles.toastText}>{internal.text1}</Text>
-              {internal.text2 ? (
-                <Text style={styles.toastTextSecondary}>{internal.text2}</Text>
-              ) : null}
+            <View style={[styles.toast, { backgroundColor: "#3498db" }]}>
+              <Text style={styles.toastTitle}>{internal.text1}</Text>
+              {internal.text2 && <Text style={styles.toastMsg}>{internal.text2}</Text>}
             </View>
           ),
         }}
@@ -454,198 +391,168 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#212121",
-    paddingTop: 14,
-  },
-  scrollView: {
-    flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    padding: 20,
+    paddingBottom: 60,
   },
-  profilecontainer: {
+  containerInner: {
+    paddingHorizontal:12,
+    alignItems: "center",
+  },
+  headerContainer: {
     width: "100%",
-    paddingHorizontal: 32,
-  },
-  headeronmenu: {
-    textAlign: "center",
+    marginBottom: 26,
   },
   header: {
-    textAlign: "center",
-    color: "#fff",
-    fontWeight: "500",
     fontSize: 26,
-  },
-  fio: {
-    textAlign: "center",
+    fontWeight: "500",
     color: "#fff",
+    textAlign: "center",
+  },
+  profileSection: {
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 8,
+  },
+  name: {
+    fontSize: 22,
     fontWeight: "600",
-    fontSize: 24,
-    marginTop: 10,
-    marginBottom: 1,
+    color: "#fff",
   },
   class: {
-    textAlign: "center",
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 24,
-    marginBottom: 4,
+    fontSize: 18,
+    color: "#aaa",
+    marginTop: 4,
   },
-  forgotPassword: {
+  editButton: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
+    marginBottom: 15,
   },
-  forgotPasswordText: {
+  editButtonText: {
     color: "#007AFF",
-    fontSize: 15,
-    marginLeft: 1,
-  },
-  profileIcon: {
-    width: 90,
-    height: 90,
-    alignSelf: "center",
-    borderRadius: 45,
-  },
-
-  inputholder: {
-    color: "#fff",
     fontSize: 16,
-    fontWeight: 600,
-    marginTop: 16,
+    marginLeft: 6,
+  },
+  label: {
+    alignSelf: "flex-start",
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "500",
+    marginBottom: 6,
+    width: "100%",
   },
   input: {
     width: "100%",
-    height: 50,
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    marginTop: 8,
+    height: 44,
     backgroundColor: "#2c2c2c",
+    borderRadius: 8,
+    paddingHorizontal: 16,
     fontSize: 16,
     color: "#fff",
     borderWidth: 2,
     borderColor: "#2c2c2c",
+    marginBottom: 16,
   },
-  inputEditing: {
+  inputActive: {
     borderColor: "#007AFF",
   },
-  emailContainer: {
-    flexDirection: "row",
+  actionButton: {
+    width: "100%",
+    backgroundColor: "#007AFF",
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: "center",
+    marginBottom: 16,
+  },
+  actionButtonText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  emailRow: {
+    flexDirection: "row",
+    width: "100%",
+    marginBottom: 16,
+  },
+  confirmBtn: {
+    backgroundColor: "#007AFF",
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  confirmText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  passwordActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8,
     marginTop: 8,
   },
-  confirmButton: {
-    backgroundColor: "#2ecc71",
-    paddingVertical: 12,
+  smallBtn: {
     paddingHorizontal: 16,
-    borderRadius: 8,
-    marginLeft: 8,
-    height: 50,
-    justifyContent: "center",
+    paddingVertical: 8,
+    borderRadius: 6,
   },
-  confirmButtonText: {
+  smallText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
   },
-  addEmailButton: {
+  telegramBtn: {
+    flexDirection: "row",
     backgroundColor: "#007AFF",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-    width: "100%",
-  },
-  addEmailButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  telegramButton: {
-    flexDirection: "row",
-    backgroundColor: "#24abec",
-    paddingVertical: 10,
     paddingHorizontal: 16,
-    marginVertical: 16,
-    marginHorizontal: "auto",
+    paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
-    justifyContent: "center",
-    width: "65%",
+    marginVertical: 12,
+    width: "68%",
   },
-  buttonText: {
+  tgIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 8,
+  },
+  tgText: {
     color: "#fff",
-    fontSize: 13,
+    fontSize: 17,
     fontWeight: "600",
   },
-  telelogo: {
-    width: 25,
-    height: 25,
-    marginRight: 5,
-  },
-  Exit: {
+  logoutBtn: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 15,
   },
-  exitText: {
+  logoutText: {
     color: "#fa5757",
-    fontSize: 15,
+    fontSize: 16,
     marginLeft: 6,
   },
-  changePasswordButton: {
-    backgroundColor: "#007AFF",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 8,
-    width: "100%",
-  },
-  changePasswordButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  passwordButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-  },
-  smallButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginHorizontal: 4,
-  },
-  smallButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  toastContainer: {
+  toast: {
     width: "90%",
-    maxWidth: 400,
-    padding: 15,
+    maxWidth: 380,
+    padding: 14,
     borderRadius: 12,
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
   },
-  toastText: {
+  toastTitle: {
     fontSize: 16,
     fontWeight: "600",
     color: "#fff",
   },
-  toastTextSecondary: {
+  toastMsg: {
     fontSize: 14,
     color: "#fff",
     opacity: 0.9,

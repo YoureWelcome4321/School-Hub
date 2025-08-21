@@ -6,14 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Modal,
   TextInput,
 } from "react-native";
 import axios from "axios";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function Clubs({ navigation }) {
+export function Clubs({ navigation }) {
   const [clubs, setClubs] = useState([]);
   const [filteredClubs, setFilteredClubs] = useState([]);
   const [selectedClub, setSelectedClub] = useState(null);
@@ -27,17 +26,28 @@ export default function Clubs({ navigation }) {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [activeTab, setActiveTab] = useState("all"); // 'my', 'all', 'top'
+  const clubInfo= {
+    type: "all" ,
+    limit: 100,
+    offset: 0,
+  }
 
   // Загрузка всех клубов
   const fetchClubs = async () => {
     setLoading(true);
+    console.log(clubInfo)
     try {
       const token = await AsyncStorage.getItem("token");
-      const response = await axios.get("https://api.school-hub.ru/clubs/list", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setClubs(response.data);
+      const response = await axios.get(
+        "https://api.school-hub.ru/clubs/list",
+        {
+          headers: { Authorization: `Bearer ${token}`}
+        },clubInfo
+      );
+      console.log(response.data)
+      setClubs(response.data.clubs || response.data); // Зависит от структуры ответа
     } catch (err) {
+      console.error("Ошибка загрузки клубов:", err.response?.data || err.message);
       setError("Не удалось загрузить клубы");
     } finally {
       setLoading(false);
@@ -46,24 +56,23 @@ export default function Clubs({ navigation }) {
 
   useEffect(() => {
     fetchClubs();
-  }, []);
+  }, [activeTab]); // Перезагружаем при смене вкладки
 
-  // Фильтрация клубов при изменении activeTab
+  // Фильтрация и сортировка
   useEffect(() => {
     if (activeTab === "my") {
       setFilteredClubs(clubs.filter((club) => club.joined));
     } else if (activeTab === "all") {
       setFilteredClubs(clubs.filter((club) => !club.joined));
     } else if (activeTab === "top") {
-      // Сортировка по количеству участников (можно уточнить бэкенд-логику)
       const sorted = [...clubs]
         .sort((a, b) => b.members_count - a.members_count)
-        .slice(0, 10); // Топ-10
+        .slice(0, 10);
       setFilteredClubs(sorted);
     }
   }, [activeTab, clubs]);
 
-  // Сброс уведомлений
+  // Очистка уведомлений
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 5000);
@@ -78,7 +87,7 @@ export default function Clubs({ navigation }) {
     }
   }, [success]);
 
-  // Проверка уникальности названия
+  // Проверка названия
   const checkTitle = async () => {
     if (!formData.title.trim()) return;
     try {
@@ -86,7 +95,9 @@ export default function Clubs({ navigation }) {
       const response = await axios.post(
         "https://api.school-hub.ru/clubs/check_title",
         { title: formData.title },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       if (!response.data.isUnique) {
         setError("Название уже занято");
@@ -109,18 +120,21 @@ export default function Clubs({ navigation }) {
       const response = await axios.post(
         "https://api.school-hub.ru/clubs/new",
         formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       setClubs([...clubs, response.data]);
       setSuccess("Клуб создан!");
       setIsCreating(false);
       setFormData({ title: "", description: "", direction: "" });
     } catch (err) {
+      console.error("Ошибка создания клуба:", err.response?.data);
       setError("Не удалось создать клуб");
     }
   };
 
-  // Присоединиться к клубу
+  // Присоединиться
   const joinClub = async (clubId) => {
     try {
       const token = await AsyncStorage.getItem("token");
@@ -137,7 +151,9 @@ export default function Clubs({ navigation }) {
       );
       setClubs((prev) =>
         prev.map((c) =>
-          c.id === clubId ? { ...c, joined: true, members_count: c.members_count + 1 } : c
+          c.id === clubId
+            ? { ...c, joined: true, members_count: c.members_count + 1 }
+            : c
         )
       );
     } catch (err) {
@@ -145,7 +161,7 @@ export default function Clubs({ navigation }) {
     }
   };
 
-  // Покинуть клуб
+  // Покинуть
   const leaveClub = async (clubId) => {
     try {
       const token = await AsyncStorage.getItem("token");
@@ -172,7 +188,7 @@ export default function Clubs({ navigation }) {
     }
   };
 
-  // Получить детали клуба
+  // Детали клуба
   const openClubDetails = async (clubId) => {
     try {
       const token = await AsyncStorage.getItem("token");
@@ -204,9 +220,9 @@ export default function Clubs({ navigation }) {
         <Text style={styles.headerTitle}>Клубы</Text>
       </View>
 
-      {/* Категории (вкладки) */}
+      {/* Вкладки */}
       <View style={styles.tabs}>
-                <TouchableOpacity
+        <TouchableOpacity
           style={[styles.tab, activeTab === "all" && styles.activeTab]}
           onPress={() => setActiveTab("all")}
         >
@@ -233,7 +249,6 @@ export default function Clubs({ navigation }) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Список клубов */}
         {!selectedClub && !isCreating && (
           <View style={styles.listContainer}>
             {loading ? (
@@ -267,13 +282,10 @@ export default function Clubs({ navigation }) {
           </View>
         )}
 
-        {/* Детали клуба */}
+        {/* Детали */}
         {selectedClub && !isCreating && (
           <View style={styles.detailsContainer}>
-            <TouchableOpacity
-              onPress={() => setSelectedClub(null)}
-              style={styles.backButton}
-            >
+            <TouchableOpacity onPress={() => setSelectedClub(null)} style={styles.backButton}>
               <Text style={styles.backText}>← Назад</Text>
             </TouchableOpacity>
 
@@ -303,7 +315,7 @@ export default function Clubs({ navigation }) {
           </View>
         )}
 
-        {/* Форма создания клуба */}
+        {/* Форма создания */}
         {isCreating && (
           <View style={styles.formContainer}>
             <Text style={styles.formTitle}>Создать клуб</Text>
@@ -353,7 +365,7 @@ export default function Clubs({ navigation }) {
   );
 }
 
-// Стили (добавлены стили для вкладок)
+// Стили — остались без изменений
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -578,3 +590,5 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 });
+
+export default Clubs;
