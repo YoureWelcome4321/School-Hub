@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
-import { Linking } from 'react-native';
+import { Linking } from "react-native";
 
 export default function Settings() {
   const [isEditing, setIsEditing] = useState(false);
@@ -37,7 +37,7 @@ export default function Settings() {
 
   const [originalData, setOriginalData] = useState({});
   const navigation = useNavigation();
-  const [tgUrl, setUrl] = useState()
+  const [tgUrl, setUrl] = useState();
 
   const showToast = (type, title, message) => {
     Toast.show({
@@ -59,16 +59,22 @@ export default function Settings() {
         return;
       }
 
-      const response = await axios.get("https://api.school-hub.ru/settings/info", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "https://api.school-hub.ru/settings/info",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       const data = response.data;
       setProfileData(data);
       setOriginalData(data);
       if (data.email) setEmailInput(data.email);
     } catch (error) {
-      console.log("Ошибка загрузки профиля:", error.response?.data || error.message);
+      console.log(
+        "Ошибка загрузки профиля:",
+        error.response?.data || error.message
+      );
       showToast("error", "Ошибка", "Не удалось загрузить данные.");
     }
   };
@@ -164,23 +170,28 @@ export default function Settings() {
   };
 
   const handlePress = () => {
-      GetTg()
-      Linking.openURL(tgUrl).catch(err => console.error("Не удалось открыть URL:", err));
+    GetTg();
+    Linking.openURL(tgUrl).catch((err) =>
+      console.error("Не удалось открыть URL:", err)
+    );
   };
 
   async function GetTg() {
     try {
       const token = await AsyncStorage.getItem("token");
-      const response = await axios.get("https://api.school-hub.ru/settings/telegram/connect",  {
-        headers: {
-          "Content-Type": "application/json",
-          headers: { Authorization: `Bearer ${token}` }
-        },
-      });
-      console.log(response)
-      setUrl(response.data.url)
+      const response = await axios.get(
+        "https://api.school-hub.ru/settings/telegram/connect",
+        {
+          headers: {
+            "Content-Type": "application/json",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        }
+      );
+      console.log(response);
+      setUrl(response.data.url);
     } catch (error) {
-        console.log("Нет ответа от сервера:", error.request);
+      console.log("Нет ответа от сервера:", error.request);
     }
   }
 
@@ -229,12 +240,16 @@ export default function Settings() {
           </View>
 
           <View style={styles.profileSection}>
-            <Image source={require("../assets/Profile.png")} style={styles.avatar} />
+            <Image
+              source={require("../assets/Profile.png")}
+              style={styles.avatar}
+            />
             <Text style={styles.name}>
               {profileData.name} {profileData.surname?.[0]}.
             </Text>
             <Text style={styles.class}>
-              {profileData.class_number}{profileData.class_letter} класс
+              {profileData.class_number}
+              {profileData.class_letter} класс
             </Text>
           </View>
 
@@ -269,7 +284,10 @@ export default function Settings() {
               editable={isEditing}
             />
           ) : !isAddingEmail ? (
-            <TouchableOpacity style={styles.actionButton} onPress={() => setIsAddingEmail(true)}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setIsAddingEmail(true)}
+            >
               <Text style={styles.actionButtonText}>Привязать почту</Text>
             </TouchableOpacity>
           ) : (
@@ -283,7 +301,10 @@ export default function Settings() {
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
-              <TouchableOpacity style={styles.confirmBtn} onPress={handleAddEmail}>
+              <TouchableOpacity
+                style={styles.confirmBtn}
+                onPress={handleAddEmail}
+              >
                 <Text style={styles.confirmText}>✓</Text>
               </TouchableOpacity>
             </View>
@@ -348,13 +369,20 @@ export default function Settings() {
 
           {/* Telegram */}
           <TouchableOpacity onPress={handlePress} style={styles.telegramBtn}>
-            <Image source={require("../assets/TelegramLogo.png")} style={styles.tgIcon} />
+            <Image
+              source={require("../assets/TelegramLogo.png")}
+              style={styles.tgIcon}
+            />
             <Text style={styles.tgText}>Привязать Telegram</Text>
           </TouchableOpacity>
 
           {/* Выход */}
           <TouchableOpacity style={styles.logoutBtn} onPress={Exit}>
-            <MaterialCommunityIcons name="exit-to-app" color="#fa5757" size={20} />
+            <MaterialCommunityIcons
+              name="exit-to-app"
+              color="#fa5757"
+              size={20}
+            />
             <Text style={styles.logoutText}>Выйти из аккаунта</Text>
           </TouchableOpacity>
         </SafeAreaView>
@@ -366,19 +394,25 @@ export default function Settings() {
           success: (internal) => (
             <View style={[styles.toast, { backgroundColor: "#2ecc71" }]}>
               <Text style={styles.toastTitle}>{internal.text1}</Text>
-              {internal.text2 && <Text style={styles.toastMsg}>{internal.text2}</Text>}
+              {internal.text2 && (
+                <Text style={styles.toastMsg}>{internal.text2}</Text>
+              )}
             </View>
           ),
           error: (internal) => (
             <View style={[styles.toast, { backgroundColor: "#e74c3c" }]}>
               <Text style={styles.toastTitle}>{internal.text1}</Text>
-              {internal.text2 && <Text style={styles.toastMsg}>{internal.text2}</Text>}
+              {internal.text2 && (
+                <Text style={styles.toastMsg}>{internal.text2}</Text>
+              )}
             </View>
           ),
           info: (internal) => (
             <View style={[styles.toast, { backgroundColor: "#3498db" }]}>
               <Text style={styles.toastTitle}>{internal.text1}</Text>
-              {internal.text2 && <Text style={styles.toastMsg}>{internal.text2}</Text>}
+              {internal.text2 && (
+                <Text style={styles.toastMsg}>{internal.text2}</Text>
+              )}
             </View>
           ),
         }}
@@ -397,7 +431,7 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   containerInner: {
-    paddingHorizontal:12,
+    paddingHorizontal: 12,
     alignItems: "center",
   },
   headerContainer: {

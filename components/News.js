@@ -444,7 +444,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#a2acb4",
     fontSize: 20,
-
   },
   
   placeholderContainer: {
