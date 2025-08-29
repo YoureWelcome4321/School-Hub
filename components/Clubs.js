@@ -41,7 +41,6 @@ export function Clubs() {
         headers: { Authorization: `Bearer ${token}` },
         params: { type: activeTab},
       });
-      console.log(response.data)
       setClubs(response.data);
     } catch (err) {
       console.error("Ошибка загрузки клубов:", err.response?.data || err.message);
@@ -85,7 +84,7 @@ export function Clubs() {
     }
   }, [activeTab, clubs]);
 
-  // Авто-удаление уведомлений
+
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => setError(null), 5000);
@@ -124,7 +123,7 @@ export function Clubs() {
     }
   };
 
-  // Создание клуба
+
   const createClub = async () => {
     setError(null);
 
@@ -198,7 +197,7 @@ export function Clubs() {
     }
   };
 
-  // Присоединиться
+  
   const joinClub = async (clubId) => {
     
     try {
@@ -206,6 +205,7 @@ export function Clubs() {
       const response = await axios.post("https://api.school-hub.ru/clubs/join", { club_id: clubId}, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      openClubDetails(selectedClub.id)
     } catch (err) {
       console.error("Не удалось присоединится в клуб", err.response?.data || err.message);
   
@@ -219,10 +219,12 @@ export function Clubs() {
       const response = await axios.post("https://api.school-hub.ru/clubs/leave", { club_id: clubId } , {
         headers: { Authorization: `Bearer ${token}` },
       });
+      openClubDetails(selectedClub.id)
     } catch (err) {
       console.error("Не удалось покинуть клуб", err.response?.data || err.message);
   
     }
+  
   };
 
   // Детали клуба
@@ -318,7 +320,7 @@ export function Clubs() {
         {/* Детали клуба */}
         {selectedClub && !isCreating && (
           <View style={styles.detailsContainer}>
-            <TouchableOpacity onPress={() => setSelectedClub(null)} style={styles.backButton}>
+            <TouchableOpacity onPress={() => {setSelectedClub(null),fetchClubs()}} style={styles.backButton}>
               <Text style={styles.backText}>← Назад</Text>
             </TouchableOpacity>
 

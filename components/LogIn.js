@@ -1,23 +1,12 @@
 import { StatusBar } from "expo-status-bar";
-import React from "react";
-import { Linking } from 'react-native';
-import {
-  View,
-  StyleSheet,
-  Text,
-  Image,
-  TextInput,
-  TouchableOpacity,
- 
-} from "react-native";
+import React, { useState } from "react";
+import { Linking, View, StyleSheet, Text, Image, TextInput, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
 import axios from "axios";
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LogIn() {
-
   const navigation = useNavigation();
 
   const [formSignInData, setFormSignInData] = useState({
@@ -27,87 +16,100 @@ export default function LogIn() {
 
   const [validated, setValidated] = useState(false);
 
-  const [tgUrl, setUrl] = useState()
-
+  // Функция изменения полей формы
   const handleInputChange = (name, text) => {
-  setFormSignInData((prev) => ({
-    ...prev,
-    [name]: text,
-  }));
-};
-
- const handlePress = () => {
-    GetTg()
-    Linking.openURL(tgUrl).catch(err => console.error("Не удалось открыть URL:", err));
+    setFormSignInData((prev) => ({
+      ...prev,
+      [name]: text,
+    }));
   };
 
+  // Обработка входа через Telegram
+  const handlePress = async () => {
+    try {
+      // Запрос на получение ссылки
+      const response = await axios.get("https://api.school-hub.ru/auth/telegram/url", {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 10000, 
+      });
 
+      const url = response.data?.url;
+
+      if (!url || typeof url !== 'string' || !url.trim()) {
+        console.error("Сервер не вернул корректный URL:", url);
+        alert("Не удалось получить ссылку для входа. Попробуйте позже.");
+        return;
+      }
+
+    
+      if (!/^https?:\/\//i.test(url.trim())) {
+        console.error("Некорректный протокол в URL:", url);
+        alert("Некорректная ссылка для открытия.");
+        return;
+      }
+
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url.trim());
+      } else {
+        console.error("Система не может открыть URL:", url);
+        alert("Не удалось открыть ссылку. Убедитесь, что у вас установлен Telegram.");
+      }
+    } catch (error) {
+      console.error("Ошибка при получении или открытии Telegram-ссылки:", error);
+
+      if (error.code === 'ECONNABORTED') {
+        alert("Запрос к серверу занял слишком много времени.");
+      } else if (error.response) {
+        alert("Сервер вернул ошибку. Попробуйте позже.");
+      } else if (error.request) {
+        alert("Нет подключения к интернету.");
+      } else {
+        alert("Произошла ошибка при обработке запроса.");
+      }
+    }
+  };
+
+  
   async function SendLogIn() {
+    setValidated(false); 
+
     try {
       const response = await axios.post("https://api.school-hub.ru/auth", formSignInData, {
         headers: {
           "Content-Type": "application/json",
         },
       });
-      
-      try {
-        await AsyncStorage.setItem('token', response.data.token);
-        console.log('Ваш токен:', response.data.token);
-      } catch (e) {
-       console.log("Ошибка сохранения токена:", e);
-      }
-      
-      if (response.data.token) {
-        navigation.navigate('Main')
-      }
 
+      const { token } = response.data;
+
+      if (token) {
+        await AsyncStorage.setItem('token', token);
+        console.log('Токен сохранён:', token);
+        navigation.navigate('Main'); // Переход в основное приложение
+      }
     } catch (error) {
-
-      if (error.response) {
-      
-        console.log("Данные ошибки:", error.response.data);
-        console.log("Статус:", error.response.status);
-        console.log("Заголовки:", error.response.headers);
-      } else if (error.request) {
-       
-        console.log("Нет ответа от сервера:", error.request);
-      } else {
-
-        console.log("Ошибка настройки:", error.message);
-      }
-      setValidated(true);
+      console.log("Ошибка авторизации:", error.response?.data || error.message);
+      setValidated(true); // Показать ошибку "неверный логин или пароль"
     }
   }
-
-
-  async function GetTg() {
-    try {
-      const response = await axios.get("https://api.school-hub.ru/auth/telegram/url", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      console.log(response)
-      setUrl(response.data.url)
-    } catch (error) {
-        console.log("Нет ответа от сервера:", error.request);
-    }
-  }
-
-
 
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
       <SafeAreaView style={styles.content}>
-      
+        {/* Логотип */}
         <Image
           style={styles.logo}
           source={require("../assets/PushkinLogo.png")}
         />
 
+        {/* Название школы */}
         <Text style={styles.schoolTitle}>Лицей №9 имени А.С.Пушкина</Text>
 
+        {/* Форма входа */}
         <SafeAreaView style={styles.formContainer}>
           <Text style={styles.formTitle}>Авторизация</Text>
 
@@ -118,6 +120,7 @@ export default function LogIn() {
             onChangeText={(text) => handleInputChange("identifier", text)}
             value={formSignInData.identifier}
           />
+
           <TextInput
             placeholder="Пароль"
             secureTextEntry
@@ -126,21 +129,23 @@ export default function LogIn() {
             onChangeText={(text) => handleInputChange("password", text)}
             value={formSignInData.password}
           />
-          {validated &&
-            <Text style={styles.validate}>Неверный логин или пароль</Text>}
 
-          <TouchableOpacity
-            onPress={SendLogIn}
-            style={styles.signInButton}
-          >
+          {validated && (
+            <Text style={styles.validate}>Неверный логин или пароль</Text>
+          )}
+
+          {/* Кнопка входа */}
+          <TouchableOpacity onPress={SendLogIn} style={styles.signInButton}>
             <Text style={styles.buttonText}>Войти</Text>
           </TouchableOpacity>
 
+          {/* Восстановление пароля */}
           <TouchableOpacity style={styles.forgotPassword}>
             <Text style={styles.forgotPasswordText}>Забыли пароль?</Text>
           </TouchableOpacity>
 
-          <Text style={styles.orText}>Или используй для входа соцсети:</Text>
+          {/* Или через Telegram */}
+          <Text style={styles.orText}>Или используйте для входа:</Text>
 
           <TouchableOpacity onPress={handlePress} style={styles.telegramButton}>
             <Image
@@ -150,24 +155,22 @@ export default function LogIn() {
             <Text style={styles.buttonText}>Telegram</Text>
           </TouchableOpacity>
         </SafeAreaView>
-       
       </SafeAreaView>
-      
     </View>
   );
 }
 
+// Стили
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#212121",
     paddingTop: 40,
     paddingBottom: 40,
-    backgroundColor: "#212121",
   },
   content: {
     justifyContent: "center",
     alignItems: "center",
-    paddingTop: 0,
     padding: 20,
   },
   logo: {
@@ -178,7 +181,7 @@ const styles = StyleSheet.create({
   telelogo: {
     width: 25,
     height: 25,
-    marginRight: 5,
+    marginRight: 10,
   },
   schoolTitle: {
     fontSize: 21,
@@ -211,7 +214,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
   },
-  validateinput:{
+  validateinput: {
     width: "100%",
     height: 50,
     borderRadius: 8,
@@ -223,10 +226,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#fff",
   },
-
-  validate:{
+  validate: {
     color: "#fa5757",
-    marginBottom: 6,
+    fontSize: 14,
+    alignSelf: "flex-start",
+    marginLeft: 15,
+    marginBottom: 10,
   },
   signInButton: {
     backgroundColor: "#007AFF",
@@ -241,12 +246,13 @@ const styles = StyleSheet.create({
   telegramButton: {
     flexDirection: "row",
     backgroundColor: "#24abec",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    width: "60%",
+    width: "50%",
+    marginTop: 5,
   },
   buttonText: {
     color: "#fff",
@@ -254,7 +260,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   forgotPassword: {
-    marginTop: 10,
+    marginTop: 15,
     marginBottom: 20,
   },
   forgotPasswordText: {

@@ -87,6 +87,54 @@ export default function Settings() {
     setProfileData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handlePress = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await axios.get("https://api.school-hub.ru/settings/telegram/connect", {
+        headers: {
+          Authorization: `Bearer ${token}` 
+        },
+        timeout: 10000, 
+      });
+
+      const url = response.data?.url;
+      console.log(response.data.url)
+
+      if (!url || typeof url !== 'string' || !url.trim()) {
+        console.error("Сервер не вернул корректный URL:", url);
+        alert("Не удалось получить ссылку для входа. Попробуйте позже.");
+        return;
+      }
+
+    
+      if (!/^https?:\/\//i.test(url.trim())) {
+        console.error("Некорректный протокол в URL:", url);
+        alert("Некорректная ссылка для открытия.");
+        return;
+      }
+
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url.trim());
+      } else {
+        console.error("Система не может открыть URL:", url);
+        alert("Не удалось открыть ссылку. Убедитесь, что у вас установлен Telegram.");
+      }
+    } catch (error) {
+      console.error("Ошибка при получении или открытии Telegram-ссылки:", error);
+
+      if (error.code === 'ECONNABORTED') {
+        alert("Запрос к серверу занял слишком много времени.");
+      } else if (error.response) {
+        alert("Сервер вернул ошибку. Попробуйте позже.");
+      } else if (error.request) {
+        alert("Нет подключения к интернету.");
+      } else {
+        alert("Произошла ошибка при обработке запроса.");
+      }
+    }
+  };
+
   const toggleEdit = async () => {
     if (isEditing) {
       try {
@@ -169,31 +217,6 @@ export default function Settings() {
     }
   };
 
-  const handlePress = () => {
-    GetTg();
-    Linking.openURL(tgUrl).catch((err) =>
-      console.error("Не удалось открыть URL:", err)
-    );
-  };
-
-  async function GetTg() {
-    try {
-      const token = await AsyncStorage.getItem("token");
-      const response = await axios.get(
-        "https://api.school-hub.ru/settings/telegram/connect",
-        {
-          headers: {
-            "Content-Type": "application/json",
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        }
-      );
-      console.log(response);
-      setUrl(response.data.url);
-    } catch (error) {
-      console.log("Нет ответа от сервера:", error.request);
-    }
-  }
 
   const handleAddEmail = async () => {
     if (!emailInput.includes("@")) {
@@ -552,7 +575,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginVertical: 12,
-    width: "68%",
+    
   },
   tgIcon: {
     width: 20,
