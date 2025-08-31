@@ -1,22 +1,30 @@
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
-import { Linking, View, StyleSheet, Text, Image, TextInput, TouchableOpacity } from "react-native";
+import {
+  Linking,
+  View,
+  StyleSheet,
+  Text,
+  Image,
+  TextInput,
+  TouchableOpacity,
+  Keyboard,
+  ScrollView,
+  TouchableWithoutFeedback,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
-import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LogIn() {
   const navigation = useNavigation();
-
   const [formSignInData, setFormSignInData] = useState({
     identifier: "",
     password: "",
   });
-
   const [validated, setValidated] = useState(false);
 
-  // Функция изменения полей формы
   const handleInputChange = (name, text) => {
     setFormSignInData((prev) => ({
       ...prev,
@@ -24,46 +32,46 @@ export default function LogIn() {
     }));
   };
 
-  // Обработка входа через Telegram
   const handlePress = async () => {
     try {
-      // Запрос на получение ссылки
-      const response = await axios.get("https://api.school-hub.ru/auth/telegram/url", {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        timeout: 10000, 
-      });
+      const response = await axios.get(
+        "https://api.school-hub.ru/auth/telegram/url",
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+        }
+      );
 
-      const url = response.data?.url;
+      const { url, token: tempToken } = response.data;
 
-      if (!url || typeof url !== 'string' || !url.trim()) {
-        console.error("Сервер не вернул корректный URL:", url);
-        alert("Не удалось получить ссылку для входа. Попробуйте позже.");
+      if (!url || typeof url !== "string" || !url.trim()) {
+        alert("Не удалось получить ссылку для входа.");
         return;
       }
 
-    
       if (!/^https?:\/\//i.test(url.trim())) {
-        console.error("Некорректный протокол в URL:", url);
-        alert("Некорректная ссылка для открытия.");
+        alert("Некорректная ссылка.");
         return;
       }
 
       const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url.trim());
-      } else {
-        console.error("Система не может открыть URL:", url);
-        alert("Не удалось открыть ссылку. Убедитесь, что у вас установлен Telegram.");
+      if (!canOpen) {
+        alert("Установите Telegram, чтобы войти.");
+        return;
       }
-    } catch (error) {
-      console.error("Ошибка при получении или открытии Telegram-ссылки:", error);
 
-      if (error.code === 'ECONNABORTED') {
+      await Linking.openURL(url.trim());
+
+      await pollForTelegramAuth(tempToken);
+    } catch (error) {
+      console.error("Ошибка при работе с Telegram:", error);
+
+      if (error.code === "ECONNABORTED") {
         alert("Запрос к серверу занял слишком много времени.");
       } else if (error.response) {
-        alert("Сервер вернул ошибку. Попробуйте позже.");
+        alert(`Ошибка сервера: ${error.response.status}`);
       } else if (error.request) {
         alert("Нет подключения к интернету.");
       } else {
@@ -72,95 +80,137 @@ export default function LogIn() {
     }
   };
 
-  
-  async function SendLogIn() {
-    setValidated(false); 
+  const pollForTelegramAuth = async (tempToken) => {
+    const maxAttempts = 15;
+    const delay = 2000;
+
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const res = await axios.post(
+          "https://api.school-hub.ru/auth/telegram",
+          { token: tempToken },
+          {
+            headers: { "Content-Type": "application/json" },
+            timeout: 5000,
+          }
+        );
+
+        if (res.status === 200 && res.data.token) {
+          const finalToken = res.data.token;
+          await AsyncStorage.setItem("token", finalToken);
+          console.log("✅ Telegram-авторизация успешна, токен сохранён");
+          navigation.navigate("Main");
+          return;
+        }
+      } catch (error) {
+        console.log(`Попытка ${i + 1} не удалась`);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    alert("Время ожидания истекло. Попробуйте снова.");
+  };
+
+  const sendLogIn = async () => {
+    setValidated(false);
 
     try {
-      const response = await axios.post("https://api.school-hub.ru/auth", formSignInData, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await axios.post(
+        "https://api.school-hub.ru/auth",
+        formSignInData,
+        {
+          headers: { "Content-Type": "application/json" },
+          timeout: 10000,
+        }
+      );
 
       const { token } = response.data;
-
       if (token) {
-        await AsyncStorage.setItem('token', token);
-        console.log('Токен сохранён:', token);
-        navigation.navigate('Main'); // Переход в основное приложение
+        await AsyncStorage.setItem("token", token);
+        console.log("Токен сохранён:", token);
+        navigation.navigate("Main");
       }
     } catch (error) {
       console.log("Ошибка авторизации:", error.response?.data || error.message);
-      setValidated(true); // Показать ошибку "неверный логин или пароль"
+      setValidated(true);
     }
-  }
+  };
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="auto" />
-      <SafeAreaView style={styles.content}>
-        {/* Логотип */}
-        <Image
-          style={styles.logo}
-          source={require("../assets/PushkinLogo.png")}
-        />
-
-        {/* Название школы */}
-        <Text style={styles.schoolTitle}>Лицей №9 имени А.С.Пушкина</Text>
-
-        {/* Форма входа */}
-        <SafeAreaView style={styles.formContainer}>
-          <Text style={styles.formTitle}>Авторизация</Text>
-
-          <TextInput
-            placeholder="Логин"
-            style={validated ? styles.validateinput : styles.input}
-            placeholderTextColor="#a2acb4"
-            onChangeText={(text) => handleInputChange("identifier", text)}
-            value={formSignInData.identifier}
+    <TouchableWithoutFeedback
+      onPress={Keyboard.dismiss}
+      contentContainerStyle={{ flex: 1 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.container}>
+        <StatusBar style="auto" />
+        <SafeAreaView style={styles.content}>
+          {/* Логотип */}
+          <Image
+            style={styles.logo}
+            source={require("../assets/PushkinLogo.png")}
           />
 
-          <TextInput
-            placeholder="Пароль"
-            secureTextEntry
-            style={validated ? styles.validateinput : styles.input}
-            placeholderTextColor="#a2acb4"
-            onChangeText={(text) => handleInputChange("password", text)}
-            value={formSignInData.password}
-          />
+          {/* Название школы */}
+          <Text style={styles.schoolTitle}>Лицей №9 имени А.С.Пушкина</Text>
 
-          {validated && (
-            <Text style={styles.validate}>Неверный логин или пароль</Text>
-          )}
+          {/* Форма входа */}
+          <SafeAreaView style={styles.formContainer}>
+            <Text style={styles.formTitle}>Авторизация</Text>
 
-          {/* Кнопка входа */}
-          <TouchableOpacity onPress={SendLogIn} style={styles.signInButton}>
-            <Text style={styles.buttonText}>Войти</Text>
-          </TouchableOpacity>
-
-          {/* Восстановление пароля */}
-          <TouchableOpacity style={styles.forgotPassword}>
-            <Text style={styles.forgotPasswordText}>Забыли пароль?</Text>
-          </TouchableOpacity>
-
-          {/* Или через Telegram */}
-          <Text style={styles.orText}>Или используйте для входа:</Text>
-
-          <TouchableOpacity onPress={handlePress} style={styles.telegramButton}>
-            <Image
-              style={styles.telelogo}
-              source={require("../assets/TelegramLogo.png")}
+            <TextInput
+              placeholder="Логин"
+              style={validated ? styles.validateinput : styles.input}
+              placeholderTextColor="#a2acb4"
+              onChangeText={(text) => handleInputChange("identifier", text)}
+              value={formSignInData.identifier}
             />
-            <Text style={styles.buttonText}>Telegram</Text>
-          </TouchableOpacity>
+
+            <TextInput
+              placeholder="Пароль"
+              secureTextEntry
+              style={validated ? styles.validateinput : styles.input}
+              placeholderTextColor="#a2acb4"
+              onChangeText={(text) => handleInputChange("password", text)}
+              value={formSignInData.password}
+            />
+
+            {validated && (
+              <Text style={styles.validate}>Неверный логин или пароль</Text>
+            )}
+
+            {/* Кнопка входа */}
+            <TouchableOpacity onPress={sendLogIn} style={styles.signInButton}>
+              <Text style={styles.buttonText}>Войти</Text>
+            </TouchableOpacity>
+
+            {/* Восстановление пароля */}
+            <TouchableOpacity style={styles.forgotPassword}>
+              <Text style={styles.forgotPasswordText}>Забыли пароль?</Text>
+            </TouchableOpacity>
+
+            {/* Или через Telegram */}
+            <Text style={styles.orText}>Или используйте для входа:</Text>
+
+            <TouchableOpacity
+              onPress={handlePress}
+              style={styles.telegramButton}
+            >
+              <Image
+                style={styles.telelogo}
+                source={require("../assets/TelegramLogo.png")}
+              />
+              <Text style={styles.buttonText}>Telegram</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
         </SafeAreaView>
-      </SafeAreaView>
-    </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
-// Стили
+// Стили (оставлены без изменений)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
