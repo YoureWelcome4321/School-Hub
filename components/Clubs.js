@@ -317,7 +317,6 @@ export function Clubs() {
           </View>
         )}
 
-        {/* Детали клуба */}
         {selectedClub && !isCreating && (
           <View style={styles.detailsContainer}>
             <TouchableOpacity onPress={() => {setSelectedClub(null),fetchClubs()}} style={styles.backButton}>
