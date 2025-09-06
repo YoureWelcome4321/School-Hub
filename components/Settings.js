@@ -10,6 +10,8 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -37,7 +39,6 @@ export default function Settings() {
 
   const [originalData, setOriginalData] = useState({});
   const navigation = useNavigation();
-  const [tgUrl, setUrl] = useState();
 
   const showToast = (type, title, message) => {
     Toast.show({
@@ -47,7 +48,7 @@ export default function Settings() {
       visibilityTime: 3000,
       autoHide: true,
       position: "top",
-      topOffset: 40,
+      topOffset: 60,
     });
   };
 
@@ -58,23 +59,17 @@ export default function Settings() {
         showToast("error", "Ошибка", "Токен не найден.");
         return;
       }
-
       const response = await axios.get(
         "https://api.school-hub.ru/settings/info",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-
       const data = response.data;
       setProfileData(data);
       setOriginalData(data);
       if (data.email) setEmailInput(data.email);
     } catch (error) {
-      console.log(
-        "Ошибка загрузки профиля:",
-        error.response?.data || error.message
-      );
       showToast("error", "Ошибка", "Не удалось загрузить данные.");
     }
   };
@@ -87,51 +82,50 @@ export default function Settings() {
     setProfileData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const TelegramOut = async() => {
+    const token = await AsyncStorage.getItem('token')
+    try {
+    const response = await axios.delete("https://api.school-hub.ru/settings/telegram/out",{
+      headers:{
+        Authorization: `Bearer ${token}`
+      }
+    });
+    console.log('Телеграм успешно отвязан')
+  } catch(err){
+    console.log(`Ошибка отвязки телеграм: ${err}`)
+  }
+
+  }
+
   const handlePress = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
-      const response = await axios.get("https://api.school-hub.ru/settings/telegram/connect", {
-        headers: {
-          Authorization: `Bearer ${token}` 
-        },
-        timeout: 10000, 
-      });
-
+      const response = await axios.get(
+        "https://api.school-hub.ru/settings/telegram/connect",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 10000,
+        }
+      );
       const url = response.data?.url;
-      console.log(response.data.url)
-
-      if (!url || typeof url !== 'string' || !url.trim()) {
-        console.error("Сервер не вернул корректный URL:", url);
+      if (!url || typeof url !== "string" || !url.trim()) {
         alert("Не удалось получить ссылку для входа. Попробуйте позже.");
         return;
       }
-
-    
       if (!/^https?:\/\//i.test(url.trim())) {
-        console.error("Некорректный протокол в URL:", url);
         alert("Некорректная ссылка для открытия.");
         return;
       }
-
       const canOpen = await Linking.canOpenURL(url);
       if (canOpen) {
         await Linking.openURL(url.trim());
       } else {
-        console.error("Система не может открыть URL:", url);
-        alert("Не удалось открыть ссылку. Убедитесь, что у вас установлен Telegram.");
+        alert(
+          "Не удалось открыть ссылку. Убедитесь, что у вас установлен Telegram."
+        );
       }
     } catch (error) {
-      console.error("Ошибка при получении или открытии Telegram-ссылки:", error);
-
-      if (error.code === 'ECONNABORTED') {
-        alert("Запрос к серверу занял слишком много времени.");
-      } else if (error.response) {
-        alert("Сервер вернул ошибку. Попробуйте позже.");
-      } else if (error.request) {
-        alert("Нет подключения к интернету.");
-      } else {
-        alert("Произошла ошибка при обработке запроса.");
-      }
+      alert("Ошибка при получении или открытии Telegram-ссылки.");
     }
   };
 
@@ -143,9 +137,7 @@ export default function Settings() {
           showToast("error", "Ошибка", "Токен не найден.");
           return;
         }
-
         const updates = [];
-
         if (profileData.login !== originalData.login) {
           updates.push(
             axios.post(
@@ -155,7 +147,6 @@ export default function Settings() {
             )
           );
         }
-
         if (profileData.email && profileData.email !== originalData.email) {
           updates.push(
             axios.post(
@@ -165,7 +156,6 @@ export default function Settings() {
             )
           );
         }
-
         if (updates.length > 0) {
           await Promise.all(updates);
           setOriginalData({ ...profileData });
@@ -179,7 +169,6 @@ export default function Settings() {
         showToast("error", "Ошибка", message);
       }
     }
-
     setIsEditing(!isEditing);
     if (isEditing) setShowChangePassword(false);
   };
@@ -189,12 +178,10 @@ export default function Settings() {
       showToast("error", "Ошибка", "Заполните все поля.");
       return;
     }
-
     if (newPassword.length < 6) {
       showToast("error", "Ошибка", "Пароль ≥ 6 символов.");
       return;
     }
-
     try {
       const token = await AsyncStorage.getItem("token");
       await axios.post(
@@ -205,7 +192,6 @@ export default function Settings() {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       showToast("success", "Готово", "Пароль изменён.");
       setCurrentPassword("");
       setNewPassword("");
@@ -217,13 +203,11 @@ export default function Settings() {
     }
   };
 
-
   const handleAddEmail = async () => {
     if (!emailInput.includes("@")) {
       showToast("error", "Ошибка", "Введите корректный email.");
       return;
     }
-
     try {
       const token = await AsyncStorage.getItem("token");
       await axios.post(
@@ -231,7 +215,6 @@ export default function Settings() {
         { email: emailInput },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setProfileData((prev) => ({ ...prev, email: emailInput }));
       setOriginalData((prev) => ({ ...prev, email: emailInput }));
       setIsAddingEmail(false);
@@ -249,19 +232,21 @@ export default function Settings() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
+      <View style={styles.headerFixed}>
+        <Text style={styles.header}>Профиль</Text>
+      </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <SafeAreaView style={styles.containerInner}>
-          {/* Заголовок и аватар */}
-          <View style={styles.headerContainer}>
-            <Text style={styles.header}>Профиль</Text>
-          </View>
-
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.profileSection}>
             <Image
               source={require("../assets/Profile.png")}
@@ -275,14 +260,12 @@ export default function Settings() {
               {profileData.class_letter} класс
             </Text>
           </View>
-
           <TouchableOpacity onPress={toggleEdit} style={styles.editButton}>
             <MaterialCommunityIcons name="draw" color="#007AFF" size={20} />
             <Text style={styles.editButtonText}>
               {isEditing ? "Сохранить" : "Редактировать"}
             </Text>
           </TouchableOpacity>
-
           {/* Логин */}
           <Text style={styles.label}>Логин</Text>
           <TextInput
@@ -293,7 +276,6 @@ export default function Settings() {
             placeholderTextColor="#888"
             editable={isEditing}
           />
-
           {/* Почта */}
           <Text style={styles.label}>Почта</Text>
           {profileData.email ? (
@@ -332,7 +314,6 @@ export default function Settings() {
               </TouchableOpacity>
             </View>
           )}
-
           {/* Пароль */}
           <Text style={styles.label}>Пароль</Text>
           {isEditing ? (
@@ -389,16 +370,47 @@ export default function Settings() {
               editable={false}
             />
           )}
-
-          {/* Telegram */}
-          <TouchableOpacity onPress={handlePress} style={styles.telegramBtn}>
-            <Image
-              source={require("../assets/TelegramLogo.png")}
-              style={styles.tgIcon}
-            />
-            <Text style={styles.tgText}>Привязать Telegram</Text>
-          </TouchableOpacity>
-
+          {isEditing ? (
+             profileData.telegram_name ? (
+            <>
+              <Text style={styles.label}>Telegram Username</Text>
+              <TouchableOpacity style={styles.actionButtonOut} onPress={TelegramOut}>
+                <Text style={styles.actionButtonText}>Отвязать Telegram</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+            <Text style={styles.label}>Telegram Username</Text>
+            <TouchableOpacity onPress={handlePress} style={styles.telegramBtn}>
+              <Image
+                source={require("../assets/TelegramLogo.png")}
+                style={styles.tgIcon}
+              />
+              <Text style={styles.tgText}>Привязать Telegram</Text>
+            </TouchableOpacity>
+            </>
+          )) : 
+            profileData.telegram_name ? (
+            <>
+              <Text style={styles.label}>Telegram Username</Text>
+              <TextInput
+                style={styles.input}
+                value={`@${profileData.telegram_name}`}
+                editable={false}
+              />
+            </>
+          ) : (
+            <>
+            <Text style={styles.label}>Telegram Username</Text>
+            <TouchableOpacity onPress={handlePress} style={styles.telegramBtn}>
+              <Image
+                source={require("../assets/TelegramLogo.png")}
+                style={styles.tgIcon}
+              />
+              <Text style={styles.tgText}>Привязать Telegram</Text>
+            </TouchableOpacity>
+            </>
+          )}
           {/* Выход */}
           <TouchableOpacity style={styles.logoutBtn} onPress={Exit}>
             <MaterialCommunityIcons
@@ -408,14 +420,14 @@ export default function Settings() {
             />
             <Text style={styles.logoutText}>Выйти из аккаунта</Text>
           </TouchableOpacity>
-        </SafeAreaView>
-      </ScrollView>
-
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
       {/* Toast */}
       <Toast
         config={{
           success: (internal) => (
-            <View style={[styles.toast, { backgroundColor: "#2ecc71" }]}>
+            <View style={[styles.toast, { backgroundColor: "#007AFF" }]}>
               <Text style={styles.toastTitle}>{internal.text1}</Text>
               {internal.text2 && (
                 <Text style={styles.toastMsg}>{internal.text2}</Text>
@@ -431,7 +443,7 @@ export default function Settings() {
             </View>
           ),
           info: (internal) => (
-            <View style={[styles.toast, { backgroundColor: "#3498db" }]}>
+            <View style={[styles.toast, { backgroundColor: "#007AFF" }]}>
               <Text style={styles.toastTitle}>{internal.text1}</Text>
               {internal.text2 && (
                 <Text style={styles.toastMsg}>{internal.text2}</Text>
@@ -440,7 +452,7 @@ export default function Settings() {
           ),
         }}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -449,73 +461,83 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#212121",
   },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 60,
-  },
-  containerInner: {
-    paddingHorizontal: 12,
+  headerFixed: {
+    paddingTop: 10,
+    paddingHorizontal: 24,
+    backgroundColor: "#212121",
     alignItems: "center",
-  },
-  headerContainer: {
-    width: "100%",
-    marginBottom: 26,
+    borderBottomWidth: 1,
+    borderBottomColor: "#232323",
+    paddingBottom: 18,
   },
   header: {
     fontSize: 26,
     fontWeight: "500",
     color: "#fff",
     textAlign: "center",
+    marginTop: 11,
+    letterSpacing: 0.5,
   },
   profileSection: {
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 0,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 8,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: "#007AFF",
   },
   name: {
     fontSize: 22,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#fff",
+    marginBottom: 2,
   },
   class: {
-    fontSize: 18,
+    fontSize: 17,
     color: "#aaa",
-    marginTop: 4,
+    marginTop: 2,
+  },
+  scrollContent: {
+    padding: 24,
+    alignItems: "center",
+    paddingBottom: 40,
   },
   editButton: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 15,
+    marginVertical: 12,
+    alignSelf: "center",
   },
   editButtonText: {
     color: "#007AFF",
     fontSize: 16,
     marginLeft: 6,
+    fontWeight: "600",
   },
   label: {
     alignSelf: "flex-start",
     color: "#fff",
-    fontSize: 18,
-    fontWeight: "500",
-    marginBottom: 6,
+    fontSize: 17,
+    fontWeight: "600",
+    marginBottom: 10,
+    marginTop: 6,
     width: "100%",
   },
   input: {
     width: "100%",
     height: 44,
     backgroundColor: "#2c2c2c",
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 16,
     fontSize: 16,
     color: "#fff",
     borderWidth: 2,
     borderColor: "#2c2c2c",
-    marginBottom: 16,
+    marginBottom: 14,
   },
   inputActive: {
     borderColor: "#007AFF",
@@ -524,32 +546,42 @@ const styles = StyleSheet.create({
     width: "100%",
     backgroundColor: "#007AFF",
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 14,
   },
+
+  actionButtonOut: {
+    width: "100%",
+    backgroundColor: "#fa5757",
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 14,
+  },
+
   actionButtonText: {
     color: "#fff",
     fontSize: 17,
-    fontWeight: "600",
+    fontWeight: "700",
   },
+
   emailRow: {
     flexDirection: "row",
     width: "100%",
-    marginBottom: 16,
   },
   confirmBtn: {
     backgroundColor: "#007AFF",
     width: 44,
     height: 44,
-    borderRadius: 8,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
   confirmText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 18,
+    fontSize: 20,
   },
   passwordActions: {
     flexDirection: "row",
@@ -560,7 +592,7 @@ const styles = StyleSheet.create({
   smallBtn: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   smallText: {
     color: "#fff",
@@ -570,32 +602,35 @@ const styles = StyleSheet.create({
   telegramBtn: {
     flexDirection: "row",
     backgroundColor: "#007AFF",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: "center",
-    marginVertical: 12,
-    
+    marginVertical: 6,
+    alignSelf: "stretch",
+    justifyContent: "center",
   },
   tgIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 8,
+    width: 22,
+    height: 22,
+    marginRight: 10,
   },
   tgText: {
     color: "#fff",
     fontSize: 17,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   logoutBtn: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 15,
+    marginTop: 14,
+    alignSelf: "center",
   },
   logoutText: {
     color: "#fa5757",
     fontSize: 16,
-    marginLeft: 6,
+    marginLeft: 8,
+    fontWeight: "600",
   },
   toast: {
     width: "90%",

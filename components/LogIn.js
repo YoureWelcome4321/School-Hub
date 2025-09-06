@@ -98,7 +98,7 @@ export default function LogIn() {
         if (res.status === 200 && res.data.token) {
           const finalToken = res.data.token;
           await AsyncStorage.setItem("token", finalToken);
-          console.log("✅ Telegram-авторизация успешна, токен сохранён");
+          console.log("Telegram-авторизация успешна, токен сохранён");
           navigation.navigate("Main");
           return;
         }
@@ -149,11 +149,11 @@ export default function LogIn() {
           {/* Логотип */}
           <Image
             style={styles.logo}
-            source={require("../assets/PushkinLogo.png")}
+            source={require("../assets/icon.png")}
           />
 
-          {/* Название школы */}
-          <Text style={styles.schoolTitle}>Лицей №9 имени А.С.Пушкина</Text>
+          <Text style={styles.schoolTitle}>Школа+</Text>
+          <Text style={styles.schoolDesc}>Расширяем возможности учебных учреждений.</Text>
 
           {/* Форма входа */}
           <SafeAreaView style={styles.formContainer}>
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#212121",
-    paddingTop: 40,
+    paddingTop: 20,
     paddingBottom: 40,
   },
   content: {
@@ -224,9 +224,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   logo: {
-    width: 100,
+    width: 130,
     height: 100,
-    marginBottom: 10,
+    
   },
   telelogo: {
     width: 25,
@@ -234,13 +234,21 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   schoolTitle: {
-    fontSize: 21,
+    fontSize: 24,
     width: "70%",
     fontWeight: "500",
     textAlign: "center",
-    marginBottom: 30,
+    color: "#fff",
+    marginBottom:12
+  },
+  schoolDesc:{
+    fontSize: 16,
+    width: "70%",
+    fontWeight: "500",
+    textAlign: "center",
     color: "#fff",
   },
+
   formContainer: {
     width: "100%",
     paddingBottom: 20,
@@ -295,7 +303,7 @@ const styles = StyleSheet.create({
   },
   telegramButton: {
     flexDirection: "row",
-    backgroundColor: "#24abec",
+    backgroundColor: "#007AFF",
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 8,
