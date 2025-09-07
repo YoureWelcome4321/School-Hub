@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TextInput,
   Image,
+  Linking,
   SafeAreaView,
 } from "react-native";
 import axios from "axios";
@@ -22,7 +23,7 @@ export function Clubs() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    administration: "", 
+    administration: "",
     max_members_counts: "",
     class_limit_min: "",
     class_limit_max: "",
@@ -39,11 +40,14 @@ export function Clubs() {
       const token = await AsyncStorage.getItem("token");
       const response = await axios.get("https://api.school-hub.ru/clubs/list", {
         headers: { Authorization: `Bearer ${token}` },
-        params: { type: activeTab},
+        params: { type: activeTab },
       });
       setClubs(response.data);
     } catch (err) {
-      console.error("Ошибка загрузки клубов:", err.response?.data || err.message);
+      console.error(
+        "Ошибка загрузки клубов:",
+        err.response?.data || err.message
+      );
       setError("Не удалось загрузить клубы");
     } finally {
       setLoading(false);
@@ -53,13 +57,19 @@ export function Clubs() {
   const fetchNaprav = async () => {
     try {
       const token = await AsyncStorage.getItem("token");
-      const response = await axios.get("https://api.school-hub.ru/clubs/administrations", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        "https://api.school-hub.ru/clubs/administrations",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const data = Array.isArray(response.data) ? response.data : [];
       setNapravs(data);
     } catch (err) {
-      console.error("Ошибка загрузки направлений:", err.response?.data || err.message);
+      console.error(
+        "Ошибка загрузки направлений:",
+        err.response?.data || err.message
+      );
       setError("Ошибка загрузки направлений");
       setNapravs([]); // на всякий случай
     }
@@ -73,9 +83,13 @@ export function Clubs() {
   // Фильтрация и сортировка
   useEffect(() => {
     if (activeTab === "my") {
-      setFilteredClubs(clubs.filter((club) => !(club.joined || club.participant)));
+      setFilteredClubs(
+        clubs.filter((club) => !(club.joined || club.participant))
+      );
     } else if (activeTab === "all") {
-      setFilteredClubs(clubs.filter((club) => !(club.joined || club.participant)));
+      setFilteredClubs(
+        clubs.filter((club) => !(club.joined || club.participant))
+      );
     } else if (activeTab === "top") {
       const sorted = [...clubs]
         .sort((a, b) => b.members_count - a.members_count)
@@ -83,7 +97,6 @@ export function Clubs() {
       setFilteredClubs(sorted);
     }
   }, [activeTab, clubs]);
-
 
   useEffect(() => {
     if (error) {
@@ -123,7 +136,6 @@ export function Clubs() {
     }
   };
 
-
   const createClub = async () => {
     setError(null);
 
@@ -139,23 +151,36 @@ export function Clubs() {
 
     // Валидация
     if (!title.trim()) return setError("Введите название клуба");
-    if (title.length < 3) return setError("Название должно быть не менее 3 символов");
+    if (title.length < 3)
+      return setError("Название должно быть не менее 3 символов");
     if (!description.trim()) return setError("Добавьте описание");
     if (description.length < 10) return setError("Описание слишком короткое");
     if (!administration) return setError("Выберите направление");
-    if (max_members_counts && (max_members_counts < 5 && max_members_counts !== "0")) {
+    if (
+      max_members_counts &&
+      max_members_counts < 5 &&
+      max_members_counts !== "0"
+    ) {
       return setError("Макс. участников: 0 (бесконечно) или ≥5");
     }
 
     const min = parseInt(class_limit_min, 10);
     const max = parseInt(class_limit_max, 10);
 
-    if (class_limit_min && (min < 1 || min > 11)) return setError("Мин. класс — от 1 до 11");
-    if (class_limit_max && (max < 1 || max > 11)) return setError("Макс. класс — от 1 до 11");
-    if (class_limit_min && class_limit_max && min > max) return setError("Мин. класс не может быть больше макс.");
+    if (class_limit_min && (min < 1 || min > 11))
+      return setError("Мин. класс — от 1 до 11");
+    if (class_limit_max && (max < 1 || max > 11))
+      return setError("Макс. класс — от 1 до 11");
+    if (class_limit_min && class_limit_max && min > max)
+      return setError("Мин. класс не может быть больше макс.");
 
-    if (telegram_url && !/^https?:\/\/t\.me\/[a-zA-Z0-9_]+$/i.test(telegram_url.trim())) {
-      return setError("Некорректная ссылка Telegram (пример: https://t.me/club123)");
+    if (
+      telegram_url &&
+      !/^https?:\/\/t\.me\/[a-zA-Z0-9_]+$/i.test(telegram_url.trim())
+    ) {
+      return setError(
+        "Некорректная ссылка Telegram (пример: https://t.me/club123)"
+      );
     }
 
     try {
@@ -164,8 +189,10 @@ export function Clubs() {
       const payload = {
         title: title.trim(),
         description: description.trim(),
-        administration: parseInt(administration, 10), 
-        max_members_counts: max_members_counts ? parseInt(max_members_counts, 10) : 0,
+        administration: parseInt(administration, 10),
+        max_members_counts: max_members_counts
+          ? parseInt(max_members_counts, 10)
+          : 0,
         class_limit_min: min || 1,
         class_limit_max: max || 11,
         telegram_url: telegram_url.trim() || null,
@@ -190,41 +217,54 @@ export function Clubs() {
         telegram_url: "",
       });
     } catch (err) {
-      console.error("Ошибка создания клуба:", err.response?.data || err.message);
+      console.error(
+        "Ошибка создания клуба:",
+        err.response?.data || err.message
+      );
       setError(
-        err.response?.data?.message || "Не удалось создать клуб. Попробуйте позже."
+        err.response?.data?.message ||
+          "Не удалось создать клуб. Попробуйте позже."
       );
     }
   };
 
-  
   const joinClub = async (clubId) => {
-    
     try {
       const token = await AsyncStorage.getItem("token");
-      const response = await axios.post("https://api.school-hub.ru/clubs/join", { club_id: clubId}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      openClubDetails(selectedClub.id)
+      const response = await axios.post(
+        "https://api.school-hub.ru/clubs/join",
+        { club_id: clubId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      openClubDetails(selectedClub.id);
     } catch (err) {
-      console.error("Не удалось присоединится в клуб", err.response?.data || err.message);
-  
+      console.error(
+        "Не удалось присоединится в клуб",
+        err.response?.data || err.message
+      );
     }
   };
 
   // Покинуть
-  const leaveClub = async(clubId) => {
+  const leaveClub = async (clubId) => {
     try {
       const token = await AsyncStorage.getItem("token");
-      const response = await axios.post("https://api.school-hub.ru/clubs/leave", { club_id: clubId } , {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      openClubDetails(selectedClub.id)
+      const response = await axios.post(
+        "https://api.school-hub.ru/clubs/leave",
+        { club_id: clubId },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      openClubDetails(selectedClub.id);
     } catch (err) {
-      console.error("Не удалось покинуть клуб", err.response?.data || err.message);
-  
+      console.error(
+        "Не удалось покинуть клуб",
+        err.response?.data || err.message
+      );
     }
-  
   };
 
   // Детали клуба
@@ -233,11 +273,14 @@ export function Clubs() {
       const token = await AsyncStorage.getItem("token");
       const response = await axios.get("https://api.school-hub.ru/clubs/get", {
         headers: { Authorization: `Bearer ${token}` },
-        params: { club_id: clubId}
+        params: { club_id: clubId },
       });
       setSelectedClub(response.data);
     } catch (err) {
-      console.error("Не удалось загрузить информацию о клубе:", err.response?.data || err.message);
+      console.error(
+        "Не удалось загрузить информацию о клубе:",
+        err.response?.data || err.message
+      );
       setError("Не удалось загрузить информацию о клубе");
     }
   };
@@ -266,19 +309,40 @@ export function Clubs() {
             style={[styles.tab, activeTab === "all" && styles.activeTab]}
             onPress={() => setActiveTab("all")}
           >
-            <Text style={[styles.tabText, activeTab === "all" && styles.activeTabText]}>Все</Text>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "all" && styles.activeTabText,
+              ]}
+            >
+              Все
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === "my" && styles.activeTab]}
             onPress={() => setActiveTab("my")}
           >
-            <Text style={[styles.tabText, activeTab === "my" && styles.activeTabText]}>Мои</Text>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "my" && styles.activeTabText,
+              ]}
+            >
+              Мои
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === "top" && styles.activeTab]}
             onPress={() => setActiveTab("top")}
           >
-            <Text style={[styles.tabText, activeTab === "top" && styles.activeTabText]}>Топ</Text>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "top" && styles.activeTabText,
+              ]}
+            >
+              Топ
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -299,10 +363,13 @@ export function Clubs() {
                 >
                   <Text style={styles.cardTitle}>{club.title}</Text>
                   <Text style={styles.limits}>
-                    Для учеников от {club.class_limit_min} до {club.class_limit_max} класса
+                    Для учеников от {club.class_limit_min} до{" "}
+                    {club.class_limit_max} класса
                   </Text>
                   <View style={styles.cardFooter}>
-                    <Text style={styles.cardMeta}>Участников: {club.members_count}</Text>
+                    <Text style={styles.cardMeta}>
+                      Участников: {club.members_count}
+                    </Text>
                   </View>
                 </TouchableOpacity>
               ))
@@ -319,39 +386,57 @@ export function Clubs() {
 
         {selectedClub && !isCreating && (
           <View style={styles.detailsContainer}>
-            <TouchableOpacity onPress={() => {setSelectedClub(null),fetchClubs()}} style={styles.backButton}>
+            <TouchableOpacity
+              onPress={() => {
+                setSelectedClub(null), fetchClubs();
+              }}
+              style={styles.backButton}
+            >
               <Text style={styles.backText}>← Назад</Text>
             </TouchableOpacity>
 
             <Text style={styles.detailsTitle}>{selectedClub.title}</Text>
 
             {selectedClub.image_path ? (
-              <Image source={{ uri: selectedClub.image_path }} style={styles.clubImage} />
+              <Image
+                source={{ uri: selectedClub.image_path }}
+                style={styles.clubImage}
+              />
             ) : null}
 
             {selectedClub.description ? (
               <View style={styles.section}>
-                <Text style={styles.detailsDesc}>{selectedClub.description}</Text>
+                <Text style={styles.detailsDesc}>
+                  {selectedClub.description}
+                </Text>
               </View>
             ) : null}
+
 
             <View style={styles.infoGrid}>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Направление:</Text>
-                <Text style={styles.infoValue}>{selectedClub.administration || "—"} 🏗️</Text>
+                <Text style={styles.infoValue}>
+                  {selectedClub.administration || "—"} 🏗️
+                </Text>
               </View>
 
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Классы:</Text>
                 <Text style={styles.infoValue}>
-                  {selectedClub.class_limit_min}–{selectedClub.class_limit_max} 📚
+                  {selectedClub.class_limit_min}–{selectedClub.class_limit_max}{" "}
+                  📚
                 </Text>
               </View>
 
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Участники:</Text>
                 <Text style={styles.infoValue}>
-                  {selectedClub.members_count} / {selectedClub.max_members_counts > 0 ? selectedClub.max_members_counts : "∞"} 👥
+                  {selectedClub.members_count} /{" "}
+                  {selectedClub.max_members_counts > 0
+                    ? selectedClub.max_members_counts
+                    : "∞"}{" "}
+                  👥
                 </Text>
               </View>
 
@@ -363,27 +448,51 @@ export function Clubs() {
               )}
             </View>
 
+            {selectedClub.participant && (
+              <>
+                <View style = {styles.ParticipantContainer}>
+                  <Text style={styles.participant}>
+                    Присоединяйся к клубу в телеграм:
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => Linking.openURL(selectedClub.telegram_url)}
+                    style={styles.joinTgClub}
+                  >
+                    <Text style={styles.joinTgClubText}>
+                      {selectedClub.telegram_url}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+
             <TouchableOpacity
               style={[
                 styles.joinButton,
-                (selectedClub.joined || selectedClub.participant) ? styles.leaveButton : styles.joinButton,
+                selectedClub.joined || selectedClub.participant
+                  ? styles.leaveButton
+                  : styles.joinButton,
               ]}
               onPress={() =>
-                (selectedClub.joined || selectedClub.participant)
+                selectedClub.joined || selectedClub.participant
                   ? leaveClub(selectedClub.id)
                   : joinClub(selectedClub.id)
               }
             >
               <Text style={styles.joinButtonText}>
-                {(selectedClub.joined || selectedClub.participant) ? "Покинуть клуб" : "Присоединиться"}
+                {selectedClub.participant ? "Покинуть клуб" : "Присоединиться"}
               </Text>
             </TouchableOpacity>
+
           </View>
         )}
 
         {isCreating && (
           <View style={styles.formContainer}>
-            <TouchableOpacity onPress={() => setIsCreating(false)} style={styles.backButton}>
+            <TouchableOpacity
+              onPress={() => setIsCreating(false)}
+              style={styles.backButton}
+            >
               <Text style={styles.backText}>← Назад</Text>
             </TouchableOpacity>
 
@@ -409,16 +518,29 @@ export function Clubs() {
               multiline
               numberOfLines={4}
               value={formData.description}
-              onChangeText={(text) => setFormData({ ...formData, description: text })}
+              onChangeText={(text) =>
+                setFormData({ ...formData, description: text })
+              }
               textAlignVertical="top"
               maxLength={500}
             />
 
             {/* Выбор направления */}
-            <TouchableOpacity style={styles.pickerButton} onPress={() => setIsPickerOpen(!isPickerOpen)}>
-              <Text style={formData.administration ? styles.pickerText : styles.pickerPlaceholder}>
+            <TouchableOpacity
+              style={styles.pickerButton}
+              onPress={() => setIsPickerOpen(!isPickerOpen)}
+            >
+              <Text
+                style={
+                  formData.administration
+                    ? styles.pickerText
+                    : styles.pickerPlaceholder
+                }
+              >
                 {formData.administration
-                  ? naprav.find(n => n.id === parseInt(formData.administration, 10))?.title || "Выберите направление..."
+                  ? naprav.find(
+                      (n) => n.id === parseInt(formData.administration, 10)
+                    )?.title || "Выберите направление..."
                   : "Выберите направление..."}
               </Text>
             </TouchableOpacity>
@@ -430,7 +552,10 @@ export function Clubs() {
                     key={item.id}
                     style={styles.pickerOption}
                     onPress={() => {
-                      setFormData({ ...formData, administration: item.id.toString() });
+                      setFormData({
+                        ...formData,
+                        administration: item.id.toString(),
+                      });
                       setIsPickerOpen(false);
                     }}
                   >
@@ -446,7 +571,12 @@ export function Clubs() {
               placeholderTextColor="gray"
               value={formData.max_members_counts}
               keyboardType="number-pad"
-              onChangeText={(text) => setFormData({ ...formData, max_members_counts: text.replace(/[^0-9]/g, '') })}
+              onChangeText={(text) =>
+                setFormData({
+                  ...formData,
+                  max_members_counts: text.replace(/[^0-9]/g, ""),
+                })
+              }
             />
 
             <View style={styles.rowInput}>
@@ -456,7 +586,12 @@ export function Clubs() {
                 placeholderTextColor="gray"
                 value={formData.class_limit_min}
                 keyboardType="number-pad"
-                onChangeText={(text) => setFormData({ ...formData, class_limit_min: text.replace(/[^0-9]/g, '') })}
+                onChangeText={(text) =>
+                  setFormData({
+                    ...formData,
+                    class_limit_min: text.replace(/[^0-9]/g, ""),
+                  })
+                }
                 maxLength={2}
               />
               <TextInput
@@ -465,7 +600,12 @@ export function Clubs() {
                 placeholderTextColor="gray"
                 value={formData.class_limit_max}
                 keyboardType="number-pad"
-                onChangeText={(text) => setFormData({ ...formData, class_limit_max: text.replace(/[^0-9]/g, '') })}
+                onChangeText={(text) =>
+                  setFormData({
+                    ...formData,
+                    class_limit_max: text.replace(/[^0-9]/g, ""),
+                  })
+                }
                 maxLength={2}
               />
             </View>
@@ -475,7 +615,9 @@ export function Clubs() {
               placeholder="Ссылка на Telegram (https://t.me/...)"
               placeholderTextColor="gray"
               value={formData.telegram_url}
-              onChangeText={(text) => setFormData({ ...formData, telegram_url: text })}
+              onChangeText={(text) =>
+                setFormData({ ...formData, telegram_url: text })
+              }
               autoCapitalize="none"
               autoComplete="off"
             />
@@ -539,7 +681,7 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: "#2c2c2c",
     padding: 4,
-    marginHorizontal:16,
+    marginHorizontal: 16,
     borderRadius: 12,
     marginBottom: 10,
   },
@@ -663,6 +805,24 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "500",
   },
+
+  ParticipantContainer:{
+    gap:0
+  },
+
+  participant: {
+    color: "#a2acb4",
+    fontSize: 19,
+    lineHeight: 20,
+  },
+
+  joinTgClubText:{
+    color: "#007AFF",
+    fontSize: 19,
+    lineHeight: 28,
+  },
+  
+
   joinButton: {
     backgroundColor: "#007AFF",
     padding: 14,
@@ -680,7 +840,7 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     gap: 16,
-    paddingHorizontal: 16
+    paddingHorizontal: 16,
   },
   formTitle: {
     fontSize: 25,
@@ -733,7 +893,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-
   },
   cancelButton: {
     flex: 1,

@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from "react-native-vector-icons";
 import { TouchableOpacity, StyleSheet } from "react-native";
 import Settings from "./Settings";
 import Shedule from "./Shedule";
-import Clubs from "./Clubs";
+import {Clubs} from "./Clubs";
 import { Soon } from "./Soon";
 import News from "./News";
 
@@ -40,8 +40,8 @@ export default function BottomMenu() {
         }}
       />
       <Tab.Screen
-        name="Soon"
-        component={Soon}
+        name="Clubs"
+        component={Clubs}
         options={{
           tabBarLabel: "Клубы",
           tabBarLabelStyle: { fontSize: 14 },
