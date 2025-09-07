@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Linking,
   View,
@@ -136,6 +136,16 @@ export default function LogIn() {
       setValidated(true);
     }
   };
+
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = await AsyncStorage.getItem("token");
+      if (token) {
+        navigation.replace("Main"); 
+      }
+    };
+    checkToken();
+  }, []);
 
   return (
     <TouchableWithoutFeedback
