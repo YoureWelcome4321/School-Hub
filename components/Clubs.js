@@ -307,7 +307,7 @@ export function Clubs() {
         <View style={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, activeTab === "all" && styles.activeTab]}
-            onPress={() => setActiveTab("all")}
+            onPress={() => {setSelectedClub(null), fetchClubs() ,setActiveTab("all")}}
           >
             <Text
               style={[
@@ -320,7 +320,7 @@ export function Clubs() {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === "my" && styles.activeTab]}
-            onPress={() => setActiveTab("my")}
+            onPress={() => {setSelectedClub(null), fetchClubs() ,setActiveTab("my")}}
           >
             <Text
               style={[
@@ -333,7 +333,7 @@ export function Clubs() {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === "top" && styles.activeTab]}
-            onPress={() => setActiveTab("top")}
+            onPress={() => {setSelectedClub(null), fetchClubs() ,setActiveTab("top")}}
           >
             <Text
               style={[
@@ -451,15 +451,12 @@ export function Clubs() {
             {selectedClub.participant && (
               <>
                 <View style = {styles.ParticipantContainer}>
-                  <Text style={styles.participant}>
-                    Присоединяйся к клубу в телеграм:
-                  </Text>
                   <TouchableOpacity
                     onPress={() => Linking.openURL(selectedClub.telegram_url)}
                     style={styles.joinTgClub}
                   >
                     <Text style={styles.joinTgClubText}>
-                      {selectedClub.telegram_url}
+                      Присоединяйся к клубу в телеграм
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -816,8 +813,16 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
+  joinTgClub:{
+    backgroundColor: "#007AFF",
+    padding: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 2,
+  },
+
   joinTgClubText:{
-    color: "#007AFF",
+    color: "#fff",
     fontSize: 19,
     lineHeight: 28,
   },

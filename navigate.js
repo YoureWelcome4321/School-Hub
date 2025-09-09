@@ -1,6 +1,7 @@
 import React from "react";
 import LogIn from "./components/LogIn";
 import Main from "./components/Main";
+import ForgotPassword from "./components/ForgotPassword";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import Toast from 'react-native-toast-message';
@@ -19,6 +20,11 @@ export default function Navigate() {
             <Stack.Screen 
                 name="Main"
                 component={Main}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+                name="ForgotPassword"
+                component={ForgotPassword}
                 options={{ headerShown: false }}
             />
         </Stack.Navigator>

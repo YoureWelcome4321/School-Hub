@@ -137,6 +137,7 @@ export default function LogIn() {
     }
   };
 
+
   useEffect(() => {
     const checkToken = async () => {
       const token = await AsyncStorage.getItem("token");
@@ -196,7 +197,7 @@ export default function LogIn() {
             </TouchableOpacity>
 
             {/* Восстановление пароля */}
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")} style={styles.forgotPassword}>
               <Text style={styles.forgotPasswordText}>Забыли пароль?</Text>
             </TouchableOpacity>
 
