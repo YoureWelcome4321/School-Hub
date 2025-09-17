@@ -2,7 +2,7 @@ import React from "react";
 import { View, StyleSheet } from "react-native";
 import BottomMenu from "./BottomMenu"; 
 
-export default function Main({ navigation }) {
+export default function Main() {
   return (
     <View style={styles.container}>
       

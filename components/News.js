@@ -289,9 +289,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#212121",
     padding: 16,
   },
-  header: {
-    marginBottom: 0,
-  },
   headerTitle: {
     marginTop: 2,
     textAlign: "center",
@@ -311,8 +308,8 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderRadius: 8,
     alignItems: "center",
   },
@@ -321,7 +318,7 @@ const styles = StyleSheet.create({
   },
   tabText: {
     color: "#a2acb4",
-    fontSize: 15,
+    fontSize: 13.2,
   },
   activeTabText: {
     color: "#fff",

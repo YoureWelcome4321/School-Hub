@@ -286,7 +286,7 @@ export function Clubs() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {error && (
         <View style={styles.alertError}>
           <Text style={styles.alertText}>{error}</Text>
@@ -417,7 +417,7 @@ export function Clubs() {
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Направление:</Text>
                 <Text style={styles.infoValue}>
-                  {selectedClub.administration || "—"} 🏗️
+                  {selectedClub.administration || "—"} 
                 </Text>
               </View>
 
@@ -540,10 +540,13 @@ export function Clubs() {
                     )?.title || "Выберите направление..."
                   : "Выберите направление..."}
               </Text>
+            
             </TouchableOpacity>
-
+            
             {isPickerOpen && naprav.length > 0 && (
+            
               <View style={styles.pickerOptions}>
+                 <ScrollView >
                 {naprav.map((item) => (
                   <TouchableOpacity
                     key={item.id}
@@ -559,8 +562,11 @@ export function Clubs() {
                     <Text style={styles.pickerOptionText}>{item.title}</Text>
                   </TouchableOpacity>
                 ))}
+                </ScrollView>
               </View>
+              
             )}
+            
 
             <TextInput
               style={styles.input}
@@ -633,7 +639,7 @@ export function Clubs() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -641,7 +647,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#212121",
-    padding: 16,
+    paddingTop: 40,
+    paddingBottom: 20,
+    padding: 1,
   },
   header: {
     marginBottom: 0,
@@ -798,7 +806,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   infoValue: {
-    fontSize: 17,
+    fontSize: 16,
     color: "#fff",
     fontWeight: "500",
   },
@@ -823,7 +831,7 @@ const styles = StyleSheet.create({
 
   joinTgClubText:{
     color: "#fff",
-    fontSize: 19,
+    fontSize: 17,
     lineHeight: 28,
   },
   
@@ -945,7 +953,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#3a3a3a",
-    maxHeight: 200,
     marginTop: 4,
     overflow: "hidden",
   },

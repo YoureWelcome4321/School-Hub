@@ -57,7 +57,7 @@ export default function Schedule() {
         throw new Error("Токен авторизации не найден");
       }
 
-      const formattedDate = date.toISOString().split("T")[0];
+      const formattedDate = date.toLocaleDateString('en-CA');
 
       const config = {
         headers: {
@@ -134,12 +134,7 @@ export default function Schedule() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
       <View style={{ flex: 1 }} {...panResponder.panHandlers}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
+        
           {/* Заголовок */}
           <View style={styles.headeronmenu}>
             <Text style={styles.headermenu}>Расписание</Text>
@@ -179,7 +174,12 @@ export default function Schedule() {
               );
             })}
           </View>
-
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
           <View style={styles.weekNavigation}>
             <Text style={styles.selectedDateLabel}>
               {formatFullDate(currentDate)}
@@ -278,8 +278,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#212121",
-    padding: 19,
     paddingBottom: 0,
+    padding: 19,
+  
   },
   scrollView: {
     flex: 1,
@@ -389,7 +390,7 @@ const styles = StyleSheet.create({
   noData: {
     textAlign: "center",
     color: "#a0a9b1",
-    fontSize: 18,
+    fontSize: 15,
     marginTop: 19,
   },
   error: {

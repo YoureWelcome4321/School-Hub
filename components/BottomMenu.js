@@ -1,10 +1,10 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { MaterialCommunityIcons } from "react-native-vector-icons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { TouchableOpacity, StyleSheet } from "react-native";
 import Settings from "./Settings";
 import Shedule from "./Shedule";
-import {Clubs} from "./Clubs";
+import { Clubs } from "./Clubs";
 import { Soon } from "./Soon";
 import News from "./News";
 
@@ -19,6 +19,7 @@ export default function BottomMenu() {
           height: 115,
           paddingBottom: 20,
           paddingTop: 10,
+          paddingHorizontal: 2,
           backgroundColor: "#2c2c2c",
           borderTopWidth: 0,
         },
