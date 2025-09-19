@@ -8,10 +8,10 @@ import {
   TextInput,
   Image,
   Linking,
-  SafeAreaView,
 } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export function Clubs() {
   const [clubs, setClubs] = useState([]);
@@ -19,6 +19,8 @@ export function Clubs() {
   const [filteredClubs, setFilteredClubs] = useState([]);
   const [selectedClub, setSelectedClub] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [Sure, areYouSure] = useState(false)
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -267,6 +269,22 @@ export function Clubs() {
     }
   };
 
+  // Удаление клуба (только администратор)
+  const deleteClub = async (clubId) => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const response = await axios.delete(
+        `https://api.school-hub.ru/clubs/del`,
+        {
+          data: { club_id: clubId },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+    } catch (err) {
+      console.log(`Не получилось удалить клуб ошибка:`, err);
+    }
+  };
+
   // Детали клуба
   const openClubDetails = async (clubId) => {
     try {
@@ -275,6 +293,7 @@ export function Clubs() {
         headers: { Authorization: `Bearer ${token}` },
         params: { club_id: clubId },
       });
+      console.log(response.data);
       setSelectedClub(response.data);
     } catch (err) {
       console.error(
@@ -286,7 +305,7 @@ export function Clubs() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {error && (
         <View style={styles.alertError}>
           <Text style={styles.alertText}>{error}</Text>
@@ -307,7 +326,9 @@ export function Clubs() {
         <View style={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, activeTab === "all" && styles.activeTab]}
-            onPress={() => {setSelectedClub(null), fetchClubs() ,setActiveTab("all")}}
+            onPress={() => {
+              setSelectedClub(null), fetchClubs(), setActiveTab("all");
+            }}
           >
             <Text
               style={[
@@ -320,7 +341,9 @@ export function Clubs() {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === "my" && styles.activeTab]}
-            onPress={() => {setSelectedClub(null), fetchClubs() ,setActiveTab("my")}}
+            onPress={() => {
+              setSelectedClub(null), fetchClubs(), setActiveTab("my");
+            }}
           >
             <Text
               style={[
@@ -333,7 +356,9 @@ export function Clubs() {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === "top" && styles.activeTab]}
-            onPress={() => {setSelectedClub(null), fetchClubs() ,setActiveTab("top")}}
+            onPress={() => {
+              setSelectedClub(null), fetchClubs(), setActiveTab("top");
+            }}
           >
             <Text
               style={[
@@ -412,12 +437,11 @@ export function Clubs() {
               </View>
             ) : null}
 
-
             <View style={styles.infoGrid}>
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Направление:</Text>
                 <Text style={styles.infoValue}>
-                  {selectedClub.administration || "—"} 
+                  {selectedClub.administration || "—"}
                 </Text>
               </View>
 
@@ -450,13 +474,30 @@ export function Clubs() {
 
             {selectedClub.participant && (
               <>
-                <View style = {styles.ParticipantContainer}>
+                <View style={styles.ParticipantContainer}>
                   <TouchableOpacity
-                    onPress={() => Linking.openURL(selectedClub.telegram_url)}
+                    onPress={() => {
+                      (selectedClub.admin = true),
+                        Linking.openURL(selectedClub.telegram_url);
+                    }}
                     style={styles.joinTgClub}
                   >
                     <Text style={styles.joinTgClubText}>
                       Присоединяйся к клубу в телеграм
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+            {selectedClub.admin && (
+              <>
+                <View style={styles.ParticipantContainer}>
+                  <TouchableOpacity
+                    onPress={() => setIsEditing(true)}
+                    style={styles.EditClub}
+                  >
+                    <Text style={styles.joinTgClubText}>
+                      Редактировать клуб
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -470,19 +511,26 @@ export function Clubs() {
                   ? styles.leaveButton
                   : styles.joinButton,
               ]}
-              onPress={() =>
+              onPress={() => {
                 selectedClub.joined || selectedClub.participant
-                  ? leaveClub(selectedClub.id)
-                  : joinClub(selectedClub.id)
-              }
+                  ? selectedClub.admin
+                    ? areYouSure(true)
+                    : leaveClub(selectedClub.id)
+                  : joinClub(selectedClub.id);
+              }}
             >
               <Text style={styles.joinButtonText}>
-                {selectedClub.participant ? "Покинуть клуб" : "Присоединиться"}
+                {selectedClub.participant
+                  ? selectedClub.admin
+                    ? "Удалить клуб"
+                    : "Покинуть клуб"
+                  : "Присоединиться"}
               </Text>
             </TouchableOpacity>
-
           </View>
         )}
+
+
 
         {isCreating && (
           <View style={styles.formContainer}>
@@ -493,7 +541,9 @@ export function Clubs() {
               <Text style={styles.backText}>← Назад</Text>
             </TouchableOpacity>
 
-            <Text style={styles.formTitle}>Создание нового клуба:</Text>
+            <Text style={styles.formTitle}>
+              {isEditing ? "Редактирование клуба" : "Создание нового клуба:"}
+            </Text>
 
             <TextInput
               style={styles.input}
@@ -540,33 +590,29 @@ export function Clubs() {
                     )?.title || "Выберите направление..."
                   : "Выберите направление..."}
               </Text>
-            
             </TouchableOpacity>
-            
+
             {isPickerOpen && naprav.length > 0 && (
-            
               <View style={styles.pickerOptions}>
-                 <ScrollView >
-                {naprav.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.pickerOption}
-                    onPress={() => {
-                      setFormData({
-                        ...formData,
-                        administration: item.id.toString(),
-                      });
-                      setIsPickerOpen(false);
-                    }}
-                  >
-                    <Text style={styles.pickerOptionText}>{item.title}</Text>
-                  </TouchableOpacity>
-                ))}
+                <ScrollView>
+                  {naprav.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.pickerOption}
+                      onPress={() => {
+                        setFormData({
+                          ...formData,
+                          administration: item.id.toString(),
+                        });
+                        setIsPickerOpen(false);
+                      }}
+                    >
+                      <Text style={styles.pickerOptionText}>{item.title}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </ScrollView>
               </View>
-              
             )}
-            
 
             <TextInput
               style={styles.input}
@@ -638,8 +684,50 @@ export function Clubs() {
             </View>
           </View>
         )}
+
+        
       </ScrollView>
-    </View>
+
+      {Sure && (
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => areYouSure(false)} // Закрываем по клику вне модалки
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()} // Блокируем закрытие при клике ВНУТРИ модалки
+            style={styles.modalContentWrapper}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Вы уверены?</Text>
+              <Text style={styles.modalText}>
+                Клуб будет удалён безвозвратно. Все участники потеряют доступ.
+              </Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonCancel]}
+                  onPress={() => areYouSure(false)}
+                >
+                  <Text style={styles.modalButtonText}>Отмена</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonConfirm]}
+                  onPress={() => {
+                    deleteClub(selectedClub.id);
+                    areYouSure(false);
+                    setSelectedClub(null);
+                    fetchClubs();
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>Удалить</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -647,13 +735,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#212121",
-    paddingTop: 40,
+    paddingTop: 14,
     paddingBottom: 20,
     padding: 1,
   },
   header: {
     marginBottom: 0,
-    paddingTop: 14,
   },
   headerTitle: {
     marginTop: 2,
@@ -811,17 +898,17 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  ParticipantContainer:{
-    gap:0
+  ParticipantContainer: {
+    gap: 0,
   },
 
   participant: {
-    color: "#a2acb4",
+    color: "#2c2c2c",
     fontSize: 19,
     lineHeight: 20,
   },
 
-  joinTgClub:{
+  joinTgClub: {
     backgroundColor: "#007AFF",
     padding: 12,
     borderRadius: 10,
@@ -829,12 +916,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  joinTgClubText:{
+  EditClub: {
+    backgroundColor: "#2c2c2c",
+    padding: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 2,
+  },
+
+  joinTgClubText: {
     color: "#fff",
     fontSize: 17,
     lineHeight: 28,
   },
-  
 
   joinButton: {
     backgroundColor: "#007AFF",
@@ -966,6 +1060,76 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
   },
+
+  modalOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 1000,
+},
+
+modalContent: {
+  backgroundColor: '#2c2c2c',
+  borderRadius: 16,
+  padding: 24,
+  width: '85%',
+  maxWidth: 370,
+  marginTop:50,
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 8,
+  elevation: 10,
+},
+
+modalTitle: {
+  fontSize: 22,
+  fontWeight: '600',
+  color: '#fff',
+  marginBottom: 12,
+  textAlign: 'center',
+},
+
+modalText: {
+  fontSize: 16,
+  color: '#a2acb4',
+  textAlign: 'center',
+  marginBottom: 24,
+  lineHeight: 22,
+},
+
+modalButtons: {
+  flexDirection: 'row',
+  gap: 16,
+  width: '100%',
+},
+
+modalButton: {
+  flex: 1,
+  paddingVertical: 14,
+  borderRadius: 10,
+  alignItems: 'center',
+},
+
+modalButtonCancel: {
+  backgroundColor: '#3a3a3a',
+},
+
+modalButtonConfirm: {
+  backgroundColor: '#d84e4e',
+},
+
+modalButtonText: {
+  color: '#fff',
+  fontSize: 16,
+  fontWeight: '600',
+},
 });
 
 export default Clubs;
