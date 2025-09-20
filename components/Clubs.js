@@ -20,7 +20,8 @@ export function Clubs() {
   const [selectedClub, setSelectedClub] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [Sure, areYouSure] = useState(false)
+  const [Edit, setEditableClub] = useState(false);
+  const [Sure, areYouSure] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -304,6 +305,127 @@ export function Clubs() {
     }
   };
 
+  // Заполняем форму данными клуба при открытии редактирования
+  useEffect(() => {
+    if (!isCreating && isEditing && selectedClub ) {
+      setFormData({
+        title: selectedClub.title ,
+        description: selectedClub.description || "",
+        administration: selectedClub.administration_id
+          ? selectedClub.administration_id.toString()
+          : "",
+        max_members_counts: selectedClub.max_members_counts
+          ? selectedClub.max_members_counts.toString()
+          : "0",
+        class_limit_min: selectedClub.class_limit_min
+          ? selectedClub.class_limit_min.toString()
+          : "1",
+        class_limit_max: selectedClub.class_limit_max
+          ? selectedClub.class_limit_max.toString()
+          : "11",
+        telegram_url: selectedClub.telegram_url || "",
+      });
+    }
+  }, [isEditing, selectedClub]);
+
+
+  // Сбрасываем форму при открытии создания клуба
+useEffect(() => {
+  if (isCreating) {
+    setFormData({
+      title: "",
+      description: "",
+      administration: "",
+      max_members_counts: "",
+      class_limit_min: "",
+      class_limit_max: "",
+      telegram_url: "",
+    });
+  }
+}, [isCreating]);
+
+  const updateClub = async () => {
+    setError(null);
+
+    const {
+      title,
+      description,
+      administration,
+      max_members_counts,
+      class_limit_min,
+      class_limit_max,
+      telegram_url,
+    } = formData;
+
+    // Валидация (можно такую же, как в createClub)
+    if (!title.trim()) return setError("Введите название клуба");
+    if (title.length < 3)
+      return setError("Название должно быть не менее 3 символов");
+    if (!description.trim()) return setError("Добавьте описание");
+    if (description.length < 10) return setError("Описание слишком короткое");
+    if (!administration) return setError("Выберите направление");
+
+    const min = parseInt(class_limit_min, 10);
+    const max = parseInt(class_limit_max, 10);
+
+    if (class_limit_min && (min < 1 || min > 11))
+      return setError("Мин. класс — от 1 до 11");
+    if (class_limit_max && (max < 1 || max > 11))
+      return setError("Макс. класс — от 1 до 11");
+    if (class_limit_min && class_limit_max && min > max)
+      return setError("Мин. класс не может быть больше макс.");
+
+    if (
+      telegram_url &&
+      !/^https?:\/\/t\.me\/[a-zA-Z0-9_]+$/i.test(telegram_url.trim())
+    ) {
+      return setError(
+        "Некорректная ссылка Telegram (пример: https://t.me/club123)"
+      );
+    }
+
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      const payload = {
+        club_id: selectedClub.id,
+        title: title.trim(),
+        description: description.trim(),
+        administration: parseInt(administration, 10),
+        max_members_counts: max_members_counts
+          ? parseInt(max_members_counts, 10)
+          : 0,
+        class_limit_min: min,
+        class_limit_max: max,
+        telegram_url: telegram_url.trim() || null,
+      };
+
+      const response = await axios.patch(
+        "https://api.school-hub.ru/clubs/edit",
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Обновляем клуб в списке
+      setClubs(
+        clubs.map((club) =>
+          club.id === selectedClub.id ? { ...club, ...payload } : club
+        )
+      );
+
+      setSuccess("✅ Клуб успешно обновлён!");
+      setEditableClub(false);
+      setIsEditing(false);
+      openClubDetails(selectedClub.id); // перезагружаем данные клуба
+    } catch (err) {
+      console.error(
+        "Ошибка обновления клуба:",
+        err.response?.data || err.message
+      );
+      setError(err.response?.data?.message || "Не удалось обновить клуб");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {error && (
@@ -322,12 +444,12 @@ export function Clubs() {
         <Text style={styles.headerTitle}>Клубы</Text>
       </View>
 
-      {!isCreating && (
+      {!isCreating && !isEditing && (
         <View style={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, activeTab === "all" && styles.activeTab]}
             onPress={() => {
-              setSelectedClub(null), fetchClubs(), setActiveTab("all");
+              setSelectedClub(null), fetchClubs(), setActiveTab("all"), setIsEditing(false), setEditableClub(false);
             }}
           >
             <Text
@@ -342,7 +464,7 @@ export function Clubs() {
           <TouchableOpacity
             style={[styles.tab, activeTab === "my" && styles.activeTab]}
             onPress={() => {
-              setSelectedClub(null), fetchClubs(), setActiveTab("my");
+              setSelectedClub(null), fetchClubs(), setActiveTab("my"), setIsEditing(false), setEditableClub(false);
             }}
           >
             <Text
@@ -357,7 +479,7 @@ export function Clubs() {
           <TouchableOpacity
             style={[styles.tab, activeTab === "top" && styles.activeTab]}
             onPress={() => {
-              setSelectedClub(null), fetchClubs(), setActiveTab("top");
+              setSelectedClub(null), fetchClubs(), setActiveTab("top"), setIsEditing(false), setEditableClub(false);
             }}
           >
             <Text
@@ -409,7 +531,7 @@ export function Clubs() {
           </View>
         )}
 
-        {selectedClub && !isCreating && (
+        {selectedClub && !isCreating && !Edit && (
           <View style={styles.detailsContainer}>
             <TouchableOpacity
               onPress={() => {
@@ -493,7 +615,9 @@ export function Clubs() {
               <>
                 <View style={styles.ParticipantContainer}>
                   <TouchableOpacity
-                    onPress={() => setIsEditing(true)}
+                    onPress={() => {
+                      setIsEditing(true), setEditableClub(true);
+                    }}
                     style={styles.EditClub}
                   >
                     <Text style={styles.joinTgClubText}>
@@ -530,7 +654,168 @@ export function Clubs() {
           </View>
         )}
 
+        {isEditing && (
+          <View style={styles.formContainer}>
+            <TouchableOpacity
+              onPress={() => {
+                setIsEditing(false), setEditableClub(false);
+              }}
+              style={styles.backButton}
+            >
+              <Text style={styles.backText}>← Назад</Text>
+            </TouchableOpacity>
 
+            <Text style={styles.formTitle}>Редактирование клуба</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Название клуба"
+              placeholderTextColor="gray"
+              value={formData.title}
+              onChangeText={(text) => setFormData({ ...formData, title: text })}
+              maxLength={50}
+              autoCapitalize="sentences"
+            />
+            <TouchableOpacity style={styles.checkButton} onPress={checkTitle}>
+              <Text style={styles.checkButtonText}>🔍 Проверить название</Text>
+            </TouchableOpacity>
+
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Описание клуба (расскажите, чем занимается клуб)"
+              placeholderTextColor="gray"
+              multiline
+              numberOfLines={4}
+              value={formData.description}
+              onChangeText={(text) =>
+                setFormData({ ...formData, description: text })
+              }
+              textAlignVertical="top"
+              maxLength={500}
+            />
+
+            {/* Выбор направления */}
+            <TouchableOpacity
+              style={styles.pickerButton}
+              onPress={() => setIsPickerOpen(!isPickerOpen)}
+            >
+              <Text
+                style={
+                  formData.administration
+                    ? styles.pickerText
+                    : styles.pickerPlaceholder
+                }
+              >
+                {formData.administration
+                  ? naprav.find(
+                      (n) => n.id === parseInt(formData.administration, 10)
+                    )?.title || "Выберите направление..."
+                  : "Выберите направление..."}
+              </Text>
+            </TouchableOpacity>
+
+            {isPickerOpen && naprav.length > 0 && (
+              <View style={styles.pickerOptions}>
+                <ScrollView
+                  style={styles.pickerScrollView}
+                  contentContainerStyle={styles.pickerContent}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
+                  {naprav.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.pickerOption}
+                      onPress={() => {
+                        setFormData({
+                          ...formData,
+                          administration: item.id.toString(),
+                        });
+                        setIsPickerOpen(false);
+                      }}
+                    >
+                      <Text style={styles.pickerOptionText}>{item.title}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Макс. участников (0 = бесконечно, ≥5)"
+              placeholderTextColor="gray"
+              value={formData.max_members_counts}
+              keyboardType="number-pad"
+              onChangeText={(text) =>
+                setFormData({
+                  ...formData,
+                  max_members_counts: text.replace(/[^0-9]/g, ""),
+                })
+              }
+            />
+
+            <View style={styles.rowInput}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Мин. класс (1-11)"
+                placeholderTextColor="gray"
+                value={formData.class_limit_min}
+                keyboardType="number-pad"
+                onChangeText={(text) =>
+                  setFormData({
+                    ...formData,
+                    class_limit_min: text.replace(/[^0-9]/g, ""),
+                  })
+                }
+                maxLength={2}
+              />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Макс. класс (1-11)"
+                placeholderTextColor="gray"
+                value={formData.class_limit_max}
+                keyboardType="number-pad"
+                onChangeText={(text) =>
+                  setFormData({
+                    ...formData,
+                    class_limit_max: text.replace(/[^0-9]/g, ""),
+                  })
+                }
+                maxLength={2}
+              />
+            </View>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Ссылка на Telegram (https://t.me/...)"
+              placeholderTextColor="gray"
+              value={formData.telegram_url}
+              onChangeText={(text) =>
+                setFormData({ ...formData, telegram_url: text })
+              }
+              autoCapitalize="none"
+              autoComplete="off"
+            />
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={isEditing ? () => (updateClub()) : createClub}
+              >
+                <Text style={styles.saveButtonText}>
+                  {isEditing ? "Сохранить изменения" : "Создать клуб"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setIsEditing(false)}
+              >
+                <Text style={styles.cancelButtonText}>Отмена</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {isCreating && (
           <View style={styles.formContainer}>
@@ -684,8 +969,6 @@ export function Clubs() {
             </View>
           </View>
         )}
-
-        
       </ScrollView>
 
       {Sure && (
@@ -736,7 +1019,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#212121",
     paddingTop: 14,
-    paddingBottom: 20,
+    paddingBottom: 0,
     padding: 1,
   },
   header: {
@@ -748,7 +1031,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "500",
     fontSize: 26,
-    marginBottom: 18,
+    paddingBottom: 18,
   },
   alertError: {
     backgroundColor: "#d84e4e",
@@ -998,7 +1281,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 13.3,
     fontWeight: "600",
   },
   cancelButton: {
@@ -1062,74 +1345,74 @@ const styles = StyleSheet.create({
   },
 
   modalOverlay: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  justifyContent: 'center',
-  alignItems: 'center',
-  zIndex: 1000,
-},
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
 
-modalContent: {
-  backgroundColor: '#2c2c2c',
-  borderRadius: 16,
-  padding: 24,
-  width: '85%',
-  maxWidth: 370,
-  marginTop:50,
-  alignItems: 'center',
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.3,
-  shadowRadius: 8,
-  elevation: 10,
-},
+  modalContent: {
+    backgroundColor: "#2c2c2c",
+    borderRadius: 16,
+    padding: 24,
+    width: "85%",
+    maxWidth: 370,
+    marginTop: 50,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
 
-modalTitle: {
-  fontSize: 22,
-  fontWeight: '600',
-  color: '#fff',
-  marginBottom: 12,
-  textAlign: 'center',
-},
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: "#fff",
+    marginBottom: 12,
+    textAlign: "center",
+  },
 
-modalText: {
-  fontSize: 16,
-  color: '#a2acb4',
-  textAlign: 'center',
-  marginBottom: 24,
-  lineHeight: 22,
-},
+  modalText: {
+    fontSize: 16,
+    color: "#a2acb4",
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
+  },
 
-modalButtons: {
-  flexDirection: 'row',
-  gap: 16,
-  width: '100%',
-},
+  modalButtons: {
+    flexDirection: "row",
+    gap: 16,
+    width: "100%",
+  },
 
-modalButton: {
-  flex: 1,
-  paddingVertical: 14,
-  borderRadius: 10,
-  alignItems: 'center',
-},
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
 
-modalButtonCancel: {
-  backgroundColor: '#3a3a3a',
-},
+  modalButtonCancel: {
+    backgroundColor: "#3a3a3a",
+  },
 
-modalButtonConfirm: {
-  backgroundColor: '#d84e4e',
-},
+  modalButtonConfirm: {
+    backgroundColor: "#d84e4e",
+  },
 
-modalButtonText: {
-  color: '#fff',
-  fontSize: 16,
-  fontWeight: '600',
-},
+  modalButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });
 
 export default Clubs;
