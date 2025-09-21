@@ -957,7 +957,7 @@ useEffect(() => {
             />
 
             <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.saveButton} onPress={createClub}>
+              <TouchableOpacity style={styles.saveButton} onPress={() => {createClub(),fetchClubs()}}>
                 <Text style={styles.saveButtonText}>Создать клуб</Text>
               </TouchableOpacity>
               <TouchableOpacity
